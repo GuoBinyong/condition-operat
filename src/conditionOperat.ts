@@ -1,22 +1,88 @@
 /**
- * 布尔条件的类型
+ * 非表达式的类型
  */
-type BoolCondition = Exclude<any, Function | Promise<any> | Array<any>>;
+interface NotExpression {
+  /**
+   * 对该表达式的值取反
+   */
+  not?:boolean
+}
+
+
+/**
+ * NotExpression 的类型守卫
+ * @param condExp : CondExpression 表达式
+ */
+function isNotExpression(condExp:CondExpression): condExp is NotExpression {
+  return isObject(condExp)
+}
+
+
+
+
+
+/**
+ * 布尔类型的条件的类型
+ * 该类型的值可直接将其自身作为布尔值来运算
+ */
+type BoolCondition = boolean | number | string | symbol | undefined | null
+
+/**
+ * BoolCondition 的类型守卫
+ * @param condExp : CondExpression 表达式
+ */
+function isBoolCondition(condExp:CondExpression): condExp is BoolCondition {
+  return !isObject(condExp)
+}
+
 
 /**
  * Promise条件的类型
  */
-type PromCondition = Promise<CondExpression>
+interface PromCondition extends Promise<CondExpression>,NotExpression {}
+
+
+
+/**
+ * PromCondition 的类型守卫
+ * @param condExp : CondExpression 表达式
+ */
+function isPromCondition(condExp:CondExpression): condExp is PromCondition {
+  return condExp instanceof Promise
+}
+
+
 
 /**
  * 函数条件的类型
  */
-type FunCondition = ()=>CondExpression
+interface FunCondition extends NotExpression {
+  ():CondExpression;
+}
+
+
+/**
+ * FunCondition 的类型守卫
+ * @param condExp : CondExpression 表达式
+ */
+function isFunCondition(condExp:CondExpression): condExp is FunCondition {
+  return typeof condExp === "function"
+}
+
+
+
 
 /**
  * 条件的类型
  */
-type Condition = BoolCondition | FunCondition | PromCondition
+type Condition = BoolCondition | FunCondition | PromCondition | NotExpression
+
+/**
+ * 基础条件的类型；
+ * 该类型的条件不需要经过复杂的运算，可根据 not 属性(如果有)，直接将其自身的值作为布尔值来来运算
+ */
+type BaseCondition = Exclude<Condition, FunCondition | PromCondition>
+
 
 /**
  * 关系类型
@@ -26,24 +92,31 @@ type Relationship = "and" | "or"
 /**
  * 运算结果的类型
  */
-type OperatedResult = boolean | Promise<BoolCondition>
+type OperatedResult = boolean | Promise<boolean>
 
 /**
  * 条件集
  * 带有关系，并含有多个条件的集合
  */
-interface ConditionSet  extends Array<CondExpression>{
+interface ConditionSet  extends Array<CondExpression>,NotExpression{
   /**
    * 各个条件表达式之间的关系；
    * 默认值："and"
    */
   rel?:Relationship;
-
-  /**
-   * 对所有条件表达式进行 `rel` 关系 运算之后，再进行一次 非运算
-   */
-  not?:boolean;
 }
+
+
+/**
+ * ConditionSet 的类型守卫
+ * @param condExp : CondExpression 表达式
+ */
+function isConditionSet(condExp:CondExpression): condExp is ConditionSet {
+  return Array.isArray(condExp)
+}
+
+
+
 
 /**
  * 条件表达式的类型
@@ -61,7 +134,7 @@ type CondExpression = ConditionSet | Condition
 /**
  * 非值的类型
  */
-type NotValue = ConditionSet["not"]
+type NotValue = NotExpression["not"]
 
 /**
  * 非值的序列
@@ -71,14 +144,14 @@ type NotSequence = NotValue[]
 
 /**
  * 对 target 做一系列连续的 非操作，
- * @param target : BoolCondition    操作的目标
+ * @param target : any    操作的目标，会直接将其作为布尔值来对待
  * @param notSequ : NotSequence    指示非操作序列的数组
- * @return BoolCondition     非操作后的结果
+ * @return boolean     非操作后的结果
  */
-function notOperat(target:BoolCondition,notSequ:NotSequence):BoolCondition {
-  return notSequ.reduce(function (res,not) {
+function notOperat(target:any,notSequ:NotSequence):boolean {
+  return !!(notSequ.reduce(function (res,not) {
     return not ? !res : res;
-  },target);
+  },target))
 }
 
 
@@ -91,12 +164,12 @@ function notOperat(target:BoolCondition,notSequ:NotSequence):BoolCondition {
  * 函数返回可能还会返回函数条件，返回的函数条件可能还会返回函数条件，可以无休止地这样延续下去；
  * 本方法的作用就是对函数条件进行运算，直到返回的不是函数条件为止
  */
-function flatFunCondition(condExp: CondExpression): PromCondition | BoolCondition {
-  if (typeof condExp === "function") {
+function flatFunCondition(condExp: CondExpression): Exclude<CondExpression, FunCondition> {
+  if (isFunCondition(condExp)) {
     let notSequ = [condExp.not]
     let funRes = condExp()
 
-    if (funRes instanceof Object) {
+    if (isNotExpression(funRes)) {
       funRes.not = notOperat(funRes.not, notSequ)
       return flatFunCondition(funRes)
     }
@@ -138,10 +211,9 @@ return target instanceof Object || typeof target === "object"
  *
  * - 简单优先
  *    为了提高运算效率，除了加入了短路运算的特性外，还加入了简单优先的计算原则，即：对于同一层级表达式，会按照下面的顺序优先计算：
- *    1. BoolCondition : 除了函数、Promise、ConditionSet（即：数组）以外的所有其它数据类型的条件表达式，这些条件会被当作布尔值来计算；
- *    2. FunCondition : 函数类型的条件表达式；
- *    3. ConditionSet : 条件集类型 的条件表达式，即 数组类型；
- *    4. PromCondition : Promise类型的条件表达式；
+ *    1. BaseCondition | FunCondition: 除了 Promise类型的条件 PromCondition、数组类型的条件集 ConditionSet 以外的所有其它数据类型的条件表达式，这些条件会被当作布尔值来计算；
+ *    2. ConditionSet : 条件集类型 的条件表达式，即 数组类型；
+ *    3. PromCondition : Promise类型的条件表达式；
  */
 export function conditionOperat(condExpress:CondExpression):OperatedResult {
 
@@ -157,7 +229,7 @@ export function conditionOperat(condExpress:CondExpression):OperatedResult {
 
   let notSequ = [condSet.not];
   let notOper = function(b:boolean){
-    return !!notOperat(b,notSequ)
+    return notOperat(b,notSequ)
   };
 
   let proCondArr:PromCondition[] = []
@@ -170,19 +242,19 @@ export function conditionOperat(condExpress:CondExpression):OperatedResult {
 
       condExp = flatFunCondition(condExp)
 
-      if (!isObject(condExp)){
+      if (isBoolCondition(condExp)){
         return condExp
       }
 
       //先跳过数组类型
-      if (Array.isArray(condExp)){
+      if (isConditionSet(condExp)){
         condSetArr.push(condExp)
         return false
       }
 
 
       //先跳过 Promise 类型
-      if (condExp instanceof Promise){
+      if (isPromCondition(condExp)){
         proCondArr.push(condExp)
         return false
       }
@@ -200,7 +272,7 @@ export function conditionOperat(condExpress:CondExpression):OperatedResult {
       let cond = conditionOperat(condSet);
 
       //先跳过 Promise 类型
-      if (cond instanceof Promise){
+      if (isPromCondition(cond)){
         proCondArr.push(cond)
         return false
       }
@@ -244,19 +316,19 @@ export function conditionOperat(condExpress:CondExpression):OperatedResult {
     let andRes = condSet.every(function (condExp) {
       condExp = flatFunCondition(condExp)
 
-      if (!isObject(condExp)){
+      if (isBoolCondition(condExp)){
         return condExp
       }
 
       //先跳过数组类型
-      if (Array.isArray(condExp)){
+      if (isConditionSet(condExp)){
         condSetArr.push(condExp)
         return true
       }
 
 
       //先跳过 Promise 类型
-      if (condExp instanceof Promise){
+      if (isPromCondition(condExp)){
         proCondArr.push(condExp)
         return true
       }
@@ -274,7 +346,7 @@ export function conditionOperat(condExpress:CondExpression):OperatedResult {
         let cond = conditionOperat(condSet);
 
         //先跳过 Promise 类型
-        if (cond instanceof Promise){
+        if (isPromCondition(cond)){
           proCondArr.push(cond)
           return true
         }
