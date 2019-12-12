@@ -6,12 +6,12 @@ type BoolCondition = Exclude<any, Function | Promise<any> | Array<any>>;
 /**
  * Promise条件的类型
  */
-type PromCondition = Promise<Condition>
+type PromCondition = Promise<CondExpression>
 
 /**
  * 函数条件的类型
  */
-type FunCondition = ()=>(BoolCondition | PromCondition | ConditionSet)
+type FunCondition = ()=>CondExpression
 
 /**
  * 条件的类型
@@ -51,6 +51,78 @@ interface ConditionSet  extends Array<CondExpression>{
 type CondExpression = ConditionSet | Condition
 
 
+
+
+
+
+
+
+
+/**
+ * 非值的类型
+ */
+type NotValue = ConditionSet["not"]
+
+/**
+ * 非值的序列
+ */
+type NotSequence = NotValue[]
+
+
+/**
+ * 对 target 做一系列连续的 非操作，
+ * @param target : BoolCondition    操作的目标
+ * @param notSequ : NotSequence    指示非操作序列的数组
+ * @return BoolCondition     非操作后的结果
+ */
+function notOperat(target:BoolCondition,notSequ:NotSequence):BoolCondition {
+  return notSequ.reduce(function (res,not) {
+    return not ? !res : res;
+  },target);
+}
+
+
+
+
+/**
+ * 扁平化 函数条件
+ * @param condExp : CondExpression   条件表达式；如果 condExp 不是函数条件，则不作处理 返回 condExp 自身
+ *
+ * 函数返回可能还会返回函数条件，返回的函数条件可能还会返回函数条件，可以无休止地这样延续下去；
+ * 本方法的作用就是对函数条件进行运算，直到返回的不是函数条件为止
+ */
+function flatFunCondition(condExp: CondExpression): PromCondition | BoolCondition {
+  if (typeof condExp === "function") {
+    let notSequ = [condExp.not]
+    let funRes = condExp()
+
+    if (funRes instanceof Object) {
+      funRes.not = notOperat(funRes.not, notSequ)
+      return flatFunCondition(funRes)
+    }
+
+    return notOperat(funRes, notSequ)
+  }
+
+  return condExp
+}
+
+
+/**
+ * 判断目标是否是对象类型
+ * @param target : any   目标对象
+ *
+ * 仅通过 target instanceof Object 判断是不行的，因为 对于 Object.create(null) 创建的对象 通过 ` Object.create(null) instanceof Object ` 来判断 返回的是 false
+ * 即：通过 Object.create(null) 创建的对象是不被 instanceof  认为是继续于 Object 的
+ */
+function isObject(target:any):boolean {
+return target instanceof Object || typeof target === "object"
+}
+
+
+
+
+
 /**
  * 条件运算
  * 对一系列条件进行逻辑运算；
@@ -73,13 +145,20 @@ type CondExpression = ConditionSet | Condition
  */
 export function conditionOperat(condExpress:CondExpression):OperatedResult {
 
+  if (!isObject(condExpress)){
+    return !!condExpress
+  }
+
   if (Array.isArray(condExpress)){
     var condSet:ConditionSet = condExpress as ConditionSet
   }else {
     condSet = [condExpress]
   }
 
-  let notOper:(b:boolean)=>boolean = condSet.not ? function(b){return !b} : function(b){return b}
+  let notSequ = [condSet.not];
+  let notOper = function(b:boolean){
+    return !!notOperat(b,notSequ)
+  };
 
   let proCondArr:PromCondition[] = []
   let condSetArr:ConditionSet = []
@@ -89,12 +168,10 @@ export function conditionOperat(condExpress:CondExpression):OperatedResult {
     //先对计算 不是 数组 和 不是 Promise 的 条件进行计算
     let orRes = condSet.some(function (condExp) {
 
-      if (typeof condExp === "function"){
-        condExp = condExp()
-      }
+      condExp = flatFunCondition(condExp)
 
-      if (!condExp){
-        return false
+      if (!isObject(condExp)){
+        return condExp
       }
 
       //先跳过数组类型
@@ -110,8 +187,7 @@ export function conditionOperat(condExpress:CondExpression):OperatedResult {
         return false
       }
 
-      return condExp
-
+      return notOperat(condExp,[condExp.not])
     });
 
     if (orRes){
@@ -166,12 +242,10 @@ export function conditionOperat(condExpress:CondExpression):OperatedResult {
 
     //先对计算 不是 数组 和 不是 Promise 的 条件进行计算
     let andRes = condSet.every(function (condExp) {
-      if (typeof condExp === "function"){
-        condExp = condExp()
-      }
+      condExp = flatFunCondition(condExp)
 
-      if (!condExp){
-        return false
+      if (!isObject(condExp)){
+        return condExp
       }
 
       //先跳过数组类型
@@ -187,8 +261,7 @@ export function conditionOperat(condExpress:CondExpression):OperatedResult {
         return true
       }
 
-      return condExp
-
+      return notOperat(condExp,[condExp.not])
     });
 
     if (!andRes){
@@ -242,9 +315,6 @@ export function conditionOperat(condExpress:CondExpression):OperatedResult {
 
 
 }
-
-
-
 
 
 
