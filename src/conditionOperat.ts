@@ -1,5 +1,5 @@
 /**
- * 非表达式的类型
+ * 非运算表达式的类型
  */
 interface NotExpression {
   /**
