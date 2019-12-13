@@ -2,13 +2,16 @@
 
 
 const path = require('path');
-var npmConfig = require("./package.json");
+const utils = require('./utils');
+const npmConfig = require("./package.json");
+
 
 function resolve(dir) {
   return path.join(__dirname, dir)
 }
 
-module.exports = {
+
+var projecConfig = {
 
   /* 
   webpack 的入口文件
@@ -153,3 +156,8 @@ module.exports = {
   multipleTargets: []
 
 }
+
+
+
+
+module.exports = utils.projecConfigMultipleTargetsSeparation(projecConfig);
