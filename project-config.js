@@ -2,20 +2,34 @@
 
 
 const path = require('path');
+var npmConfig = require("./package.json");
 
 function resolve(dir) {
   return path.join(__dirname, dir)
 }
 
 module.exports = {
-  // webpack 的 target
-  wpTarget: "web",  //node  web
-  libraryTarget: "umd",
 
+  // webpack 的入口文件
   entry: "./src/conditionOperat",
+
+  // webpack 的 target
+  wpTarget: "web",  //node  web 等等
+  // webpack 的 输出文件的名字； 默认值：'[name].js'
+  // filename:"",
+  // 库的名字
+  library: npmConfig.name,
+  libraryTarget: "umd",
+  // 库中被导出的项
+  libraryExport: "default",
+
   alias: {
     // '@': resolve('src'),
   },
+
+  /* 
+  排除依赖的模块
+  */
   externals: {},
 
   // html模板文件；
