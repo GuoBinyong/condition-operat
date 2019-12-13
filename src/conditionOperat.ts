@@ -1,9 +1,9 @@
 /**
- * 非运算表达式的类型
+ * 非运算表达式
  */
 interface NotExpression {
   /**
-   * 对该表达式的值取反
+   * 对原来的值取反
    */
   not?:boolean
 }
@@ -22,10 +22,12 @@ function isNotExpression(condExp:CondExpression): condExp is NotExpression {
 
 
 /**
- * 布尔类型的条件的类型
- * 该类型的值可直接将其自身作为布尔值来运算
+ * 布尔条件
+ * 代表那些可直接被当作布尔值来计算的 真假 和 假值；
  */
 type BoolCondition = boolean | number | string | symbol | undefined | null
+
+
 
 /**
  * BoolCondition 的类型守卫
@@ -37,7 +39,8 @@ function isBoolCondition(condExp:CondExpression): condExp is BoolCondition {
 
 
 /**
- * Promise条件的类型
+ * 异步条件
+ * 根据决议的值反复地进行条件运算，直到计算到得到 布尔结果 为止；
  */
 interface PromCondition extends Promise<CondExpression>,NotExpression {}
 
@@ -54,7 +57,8 @@ function isPromCondition(condExp:CondExpression): condExp is PromCondition {
 
 
 /**
- * 函数条件的类型
+ * 函数条件
+ * 带有逻辑的函数，会对其返回值反复地进行条件运算，直到计算到得到 布尔结果 为止；
  */
 interface FunCondition extends NotExpression {
   ():CondExpression;
@@ -74,6 +78,7 @@ function isFunCondition(condExp:CondExpression): condExp is FunCondition {
 
 /**
  * 条件的类型
+ * 条件是用来表达 真 或 假 的基本运算单元；
  */
 type Condition = BoolCondition | FunCondition | PromCondition | NotExpression
 
@@ -96,7 +101,7 @@ type OperatedResult = boolean | Promise<boolean>
 
 /**
  * 条件集
- * 带有关系，并含有多个条件的集合
+ * 条件集 ConditionSet 是用来表达 多个条件表达式 相与 或者 相或 关系的一种表达式；它包含多个条件表达式，并携带有关系信息（与、或）；
  */
 interface ConditionSet  extends Array<CondExpression>,NotExpression{
   /**
@@ -120,6 +125,7 @@ function isConditionSet(condExp:CondExpression): condExp is ConditionSet {
 
 /**
  * 条件表达式的类型
+ * 条件集 ConditionSet 和 条件 Condition 统称为 条件表达式
  */
 type CondExpression = ConditionSet | Condition
 
@@ -200,7 +206,7 @@ return target instanceof Object || typeof target === "object"
  * 条件运算
  * 对一系列条件进行逻辑运算；
  * @param condExpress : CondExpression   条件表达式
- * @return OperatedResult 返回布尔 或者 Promise
+ * @return OperatedResult 返回布尔类型 或者 返回布尔类型的Promise类型 的值
  *
  *
  * 特性：
@@ -211,9 +217,9 @@ return target instanceof Object || typeof target === "object"
  *
  * - 简单优先
  *    为了提高运算效率，除了加入了短路运算的特性外，还加入了简单优先的计算原则，即：对于同一层级表达式，会按照下面的顺序优先计算：
- *    1. BaseCondition | FunCondition: 除了 Promise类型的条件 PromCondition、数组类型的条件集 ConditionSet 以外的所有其它数据类型的条件表达式，这些条件会被当作布尔值来计算；
- *    2. ConditionSet : 条件集类型 的条件表达式，即 数组类型；
- *    3. PromCondition : Promise类型的条件表达式；
+ *    1. BaseCondition | FunCondition: 除了 异步条件 PromCondition、条件集 ConditionSet 以外的所有其它数据类型的条件表达式，这些条件会被当作布尔值来计算；
+ *    2. ConditionSet : 条件集；
+ *    3. PromCondition : 异步条件；
  */
 export function conditionOperat(condExpress:CondExpression):OperatedResult {
 
