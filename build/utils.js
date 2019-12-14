@@ -1,11 +1,6 @@
 'use strict'
 const path = require('path')
-const config = require('../project-config')
 const MiniCssExtractPlugin = require('mini-css-extract-plugin')
-
-exports.assetsPath = function (_path) {
-  return path.posix.join(config.staticOutDirectory, _path)
-}
 
 exports.cssLoaders = function (options) {
   options = options || {}

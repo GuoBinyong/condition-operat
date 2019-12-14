@@ -2,8 +2,9 @@
 
 
 const path = require('path');
-const utils = require('./utils');
+const utils = require('./build/utils');
 const npmConfig = require("./package.json");
+
 
 
 function resolve(dir) {
@@ -156,6 +157,7 @@ var projecConfig = {
   multipleTargets: []
 
 }
+
 
 
 

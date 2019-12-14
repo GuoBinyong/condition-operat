@@ -14,6 +14,10 @@ function resolve(dir) {
 module.exports = function createWebpackConfig(projecConfig) {
 
 
+  function assetsPath(_path) {
+    return path.posix.join(projecConfig.staticOutDirectory, _path)
+  }
+
   var libraryName = projecConfig.library;
 
   const createLintingRule = () => ({
@@ -89,7 +93,7 @@ module.exports = function createWebpackConfig(projecConfig) {
           loader: 'url-loader',
           options: {
             limit: 10000,
-            name: utils.assetsPath('img/[name].[hash:7].[ext]')
+            name: assetsPath('img/[name].[hash:7].[ext]')
           }
         },
         {
@@ -97,7 +101,7 @@ module.exports = function createWebpackConfig(projecConfig) {
           loader: 'url-loader',
           options: {
             limit: 10000,
-            name: utils.assetsPath('media/[name].[hash:7].[ext]')
+            name: assetsPath('media/[name].[hash:7].[ext]')
           }
         },
         {
@@ -105,7 +109,7 @@ module.exports = function createWebpackConfig(projecConfig) {
           loader: 'url-loader',
           options: {
             limit: 10000,
-            name: utils.assetsPath('fonts/[name].[hash:7].[ext]')
+            name: assetsPath('fonts/[name].[hash:7].[ext]')
           }
         }
       ]
