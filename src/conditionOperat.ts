@@ -61,7 +61,7 @@ function isPromCondition(condExp:CondExpression): condExp is PromCondition {
  * 带有逻辑的函数，会对其返回值反复地进行条件运算，直到计算到得到 布尔结果 为止；
  */
 interface FunCondition extends NotExpression {
-  ():CondExpression;
+  (...arg:any):CondExpression;
 }
 
 
@@ -166,18 +166,20 @@ function notOperat(target:any,notSequ:NotSequence):boolean {
 /**
  * 扁平化 函数条件
  * @param condExp : CondExpression   条件表达式；如果 condExp 不是函数条件，则不作处理 返回 condExp 自身
+ * @param thisArg ?:  any   可选；函数条件的 this 的值
+ * @param args ?:any[]      可选；函数条件的 参数
  *
- * 函数返回可能还会返回函数条件，返回的函数条件可能还会返回函数条件，可以无休止地这样延续下去；
+ * 函数条件可能还会返回函数条件，返回的函数条件可能还会返回函数条件，可以无休止地这样延续下去；
  * 本方法的作用就是对函数条件进行运算，直到返回的不是函数条件为止
  */
-function flatFunCondition(condExp: CondExpression): Exclude<CondExpression, FunCondition> {
+function flatFunCondition(condExp: CondExpression,thisArg?:any, args:any[] = []): Exclude<CondExpression, FunCondition> {
   if (isFunCondition(condExp)) {
     let notSequ = [condExp.not]
-    let funRes = condExp()
+    let funRes = condExp.apply(thisArg,args)
 
     if (isNotExpression(funRes)) {
       funRes.not = notOperat(funRes.not, notSequ)
-      return flatFunCondition(funRes)
+      return flatFunCondition(funRes,thisArg,args)
     }
 
     return notOperat(funRes, notSequ)
@@ -202,6 +204,9 @@ return target instanceof Object || typeof target === "object"
 
 
 
+
+
+
 /**
  * 条件运算
  * 对一系列条件进行逻辑运算；
@@ -221,7 +226,7 @@ return target instanceof Object || typeof target === "object"
  *    2. ConditionSet : 条件集；
  *    3. PromCondition : 异步条件；
  */
-export function conditionOperat(condExpress:CondExpression):OperatedResult {
+export function conditionOperat(condExpress:CondExpression,thisArg?:any, args?:any[]):OperatedResult {
 
   if (!isObject(condExpress)){
     return !!condExpress
@@ -246,7 +251,7 @@ export function conditionOperat(condExpress:CondExpression):OperatedResult {
     //先对计算 不是 数组 和 不是 Promise 的 条件进行计算
     let orRes = condSet.some(function (condExp) {
 
-      condExp = flatFunCondition(condExp)
+      condExp = flatFunCondition(condExp,thisArg,args)
 
       if (isBoolCondition(condExp)){
         return condExp
@@ -320,7 +325,7 @@ export function conditionOperat(condExpress:CondExpression):OperatedResult {
 
     //先对计算 不是 数组 和 不是 Promise 的 条件进行计算
     let andRes = condSet.every(function (condExp) {
-      condExp = flatFunCondition(condExp)
+      condExp = flatFunCondition(condExp,thisArg,args)
 
       if (isBoolCondition(condExp)){
         return condExp
