@@ -202,7 +202,10 @@ return target instanceof Object || typeof target === "object"
 
 
 
-
+interface conditionOperat {
+  create(expr:CondExpression): (thisArg?:any, args?:any[])=>OperatedResult;
+  create(options:CreateOptions): (...rest: any[])=>OperatedResult;
+}
 
 
 
@@ -400,6 +403,52 @@ export function conditionOperat(condExpress:CondExpression,thisArg?:any, args?:a
 }
 
 
+/**
+ * create 的选项对象
+ */
+interface CreateOptions {
+  expr?:CondExpression,
+  this?:any,
+  args?:any[]
+}
+
+function isCreateOptions(opts:any): opts is CreateOptions {
+  return opts && (opts.expr || opts.this || opts.args)
+}
+
+
+export function create(expr:CondExpression): (thisArg?:any, args?:any[])=>OperatedResult;
+export function create(options:CreateOptions): (...rest: any[])=>OperatedResult;
+export function create(exprOrOpts: CondExpression|CreateOptions){
+
+  if (isCreateOptions(exprOrOpts)){
+    var {expr,"this":thisValue,args} = exprOrOpts
+  }else {
+    expr = exprOrOpts
+  }
+
+  let argArr = [expr,thisValue,args];
+
+  function operatWith(...rest: any[]):OperatedResult {
+    var finalArgArr = argArr.map(function (argItem) {
+      if (argItem === undefined) {
+        return rest.shift()
+      }
+
+      return argItem
+    });
+
+
+    return  conditionOperat(...finalArgArr as [CondExpression, any, (any[] | undefined)] );
+  }
+
+
+
+  return operatWith;
+}
+
+
+conditionOperat.create = create;
 
 
 export default conditionOperat
