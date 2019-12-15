@@ -13,7 +13,7 @@ interface NotExpression {
  * NotExpression 的类型守卫
  * @param condExp : CondExpression 表达式
  */
-function isNotExpression(condExp:CondExpression): condExp is NotExpression {
+function isNotExpression(condExp:CondExpression<any,any>): condExp is NotExpression {
   return isObject(condExp)
 }
 
@@ -33,7 +33,7 @@ type BoolCondition = boolean | number | string | symbol | undefined | null
  * BoolCondition 的类型守卫
  * @param condExp : CondExpression 表达式
  */
-function isBoolCondition(condExp:CondExpression): condExp is BoolCondition {
+function isBoolCondition(condExp:CondExpression<any,any>): condExp is BoolCondition {
   return !isObject(condExp)
 }
 
@@ -42,7 +42,7 @@ function isBoolCondition(condExp:CondExpression): condExp is BoolCondition {
  * 异步条件
  * 根据决议的值反复地进行条件运算，直到计算到得到 布尔结果 为止；
  */
-interface PromCondition extends Promise<CondExpression>,NotExpression {}
+interface PromCondition<ThisValue,Args> extends Promise<CondExpression<ThisValue,Args>>,NotExpression {}
 
 
 
@@ -50,7 +50,7 @@ interface PromCondition extends Promise<CondExpression>,NotExpression {}
  * PromCondition 的类型守卫
  * @param condExp : CondExpression 表达式
  */
-function isPromCondition(condExp:CondExpression): condExp is PromCondition {
+function isPromCondition<ThisValue,Args>(condExp:CondExpression<ThisValue,Args>): condExp is PromCondition<ThisValue,Args> {
   return condExp instanceof Promise
 }
 
@@ -60,8 +60,8 @@ function isPromCondition(condExp:CondExpression): condExp is PromCondition {
  * 函数条件
  * 带有逻辑的函数，会对其返回值反复地进行条件运算，直到计算到得到 布尔结果 为止；
  */
-interface FunCondition extends NotExpression {
-  (...arg:any):CondExpression;
+interface FunCondition<ThisValue,Args> extends NotExpression {
+  (this:ThisValue,...args:Args extends any[] ? Args : []):CondExpression<any,any>;
 }
 
 
@@ -69,7 +69,7 @@ interface FunCondition extends NotExpression {
  * FunCondition 的类型守卫
  * @param condExp : CondExpression 表达式
  */
-function isFunCondition(condExp:CondExpression): condExp is FunCondition {
+function isFunCondition<ThisValue,Args extends any[]>(condExp:CondExpression<ThisValue,Args>): condExp is FunCondition<ThisValue,Args> {
   return typeof condExp === "function"
 }
 
@@ -80,13 +80,13 @@ function isFunCondition(condExp:CondExpression): condExp is FunCondition {
  * 条件的类型
  * 条件是用来表达 真 或 假 的基本运算单元；
  */
-type Condition = BoolCondition | FunCondition | PromCondition | NotExpression
+type Condition<ThisValue,Args> = BoolCondition | FunCondition<ThisValue,Args> | PromCondition<ThisValue,Args> | NotExpression
 
 /**
  * 基础条件的类型；
  * 该类型的条件不需要经过复杂的运算，可根据 not 属性(如果有)，直接将其自身的值作为布尔值来来运算
  */
-type BaseCondition = Exclude<Condition, FunCondition | PromCondition>
+type BaseCondition = Exclude<Condition<any,any>, FunCondition<any,any> | PromCondition<any,any>>
 
 
 /**
@@ -103,7 +103,7 @@ type OperatedResult = boolean | Promise<boolean>
  * 条件集
  * 条件集 ConditionSet 是用来表达 多个条件表达式 相与 或者 相或 关系的一种表达式；它包含多个条件表达式，并携带有关系信息（与、或）；
  */
-interface ConditionSet  extends Array<CondExpression>,NotExpression{
+interface ConditionSet<ThisValue,Args>  extends Array<CondExpression<ThisValue,Args>>,NotExpression{
   /**
    * 各个条件表达式之间的关系；
    * 默认值："and"
@@ -116,7 +116,7 @@ interface ConditionSet  extends Array<CondExpression>,NotExpression{
  * ConditionSet 的类型守卫
  * @param condExp : CondExpression 表达式
  */
-function isConditionSet(condExp:CondExpression): condExp is ConditionSet {
+function isConditionSet<ThisValue,Args>(condExp:CondExpression<ThisValue,Args>): condExp is ConditionSet<ThisValue,Args> {
   return Array.isArray(condExp)
 }
 
@@ -124,10 +124,10 @@ function isConditionSet(condExp:CondExpression): condExp is ConditionSet {
 
 
 /**
- * 条件表达式的类型
+ * 条件表达式
  * 条件集 ConditionSet 和 条件 Condition 统称为 条件表达式
  */
-type CondExpression = ConditionSet | Condition
+type CondExpression<ThisValue,Args> = ConditionSet<ThisValue,Args> | Condition<ThisValue,Args>
 
 
 
@@ -172,9 +172,10 @@ function notOperat(target:any,notSequ:NotSequence):boolean {
  * 函数条件可能还会返回函数条件，返回的函数条件可能还会返回函数条件，可以无休止地这样延续下去；
  * 本方法的作用就是对函数条件进行运算，直到返回的不是函数条件为止
  */
-function flatFunCondition(condExp: CondExpression,thisArg?:any, args:any[] = []): Exclude<CondExpression, FunCondition> {
+function flatFunCondition<ThisValue,Args>(condExp: CondExpression<ThisValue,Args>,thisArg?:ThisValue, args?:Args): Exclude<CondExpression<ThisValue,Args>, FunCondition<ThisValue,Args>> {
   if (isFunCondition(condExp)) {
     let notSequ = [condExp.not]
+    // @ts-ignore
     let funRes = condExp.apply(thisArg,args)
 
     if (isNotExpression(funRes)) {
@@ -202,9 +203,9 @@ return target instanceof Object || typeof target === "object"
 
 
 
-interface conditionOperat {
-  create(expr:CondExpression): (thisArg?:any, args?:any[])=>OperatedResult;
-  create(options:CreateOptions): (...rest: any[])=>OperatedResult;
+interface conditionOperat<ThisValue,Args> {
+  create(expr:CondExpression<ThisValue,Args>): (thisArg?:any, args?:any[])=>OperatedResult;
+  create(options:CreateOptions<ThisValue,Args>): (...rest: any[])=>OperatedResult;
 }
 
 
@@ -229,14 +230,14 @@ interface conditionOperat {
  *    2. ConditionSet : 条件集；
  *    3. PromCondition : 异步条件；
  */
-export function conditionOperat(condExpress:CondExpression,thisArg?:any, args?:any[]):OperatedResult {
+export function conditionOperat<ThisValue,Args>(condExpress:CondExpression<ThisValue,Args>,thisArg?:ThisValue, args?:Args):OperatedResult {
 
-  if (!isObject(condExpress)){
+  if (isBoolCondition(condExpress)){
     return !!condExpress
   }
 
-  if (Array.isArray(condExpress)){
-    var condSet:ConditionSet = condExpress as ConditionSet
+  if (isConditionSet(condExpress)){
+    var condSet:ConditionSet<ThisValue,Args> = condExpress as ConditionSet<ThisValue,Args>
   }else {
     condSet = [condExpress]
   }
@@ -246,8 +247,8 @@ export function conditionOperat(condExpress:CondExpression,thisArg?:any, args?:a
     return notOperat(b,notSequ)
   };
 
-  let proCondArr:PromCondition[] = []
-  let condSetArr:ConditionSet = []
+  let proCondArr:PromCondition<ThisValue,Args>[] = []
+  let condSetArr:ConditionSet<ThisValue,Args> = []
 
   if (condSet.rel === "or"){
 
@@ -301,8 +302,8 @@ export function conditionOperat(condExpress:CondExpression,thisArg?:any, args?:a
     //  专门 计算 Promise 条件的 运算结果
   if (proCondArr.length > 0){
     // @ts-ignore
-    return  Promise.allSettled(proCondArr).then(function (proCondArrResArr:{status:"fulfilled"|"rejected",value:any}[]) {
-      let proCondResArr:ConditionSet =  proCondArrResArr.map(function (proRes) {
+    return  Promise.allSettled(proCondArr).then(function (proCondArrResArr:{status:"fulfilled"|"rejected",value:CondExpression<ThisValue,Args>}[]) {
+      let proCondResArr:ConditionSet<ThisValue,Args> =  proCondArrResArr.map(function (proRes) {
         if (proRes.status === "fulfilled"){
           return proRes.value
         }else {
@@ -375,8 +376,8 @@ export function conditionOperat(condExpress:CondExpression,thisArg?:any, args?:a
     //  专门 计算 Promise 条件的 运算结果
     if (proCondArr.length > 0){
       // @ts-ignore
-      return  Promise.allSettled(proCondArr).then(function (proCondArrResArr:{status:"fulfilled"|"rejected",value:any}[]) {
-        let proCondResArr:ConditionSet =  proCondArrResArr.map(function (proRes) {
+      return  Promise.allSettled(proCondArr).then(function (proCondArrResArr:{status:"fulfilled"|"rejected",value:CondExpression<ThisValue,Args>}[]) {
+        let proCondResArr:ConditionSet<ThisValue,Args> =  proCondArrResArr.map(function (proRes) {
           if (proRes.status === "fulfilled"){
             return proRes.value
           }else {
@@ -406,20 +407,20 @@ export function conditionOperat(condExpress:CondExpression,thisArg?:any, args?:a
 /**
  * create 的选项对象
  */
-interface CreateOptions {
-  expr?:CondExpression,
-  this?:any,
-  args?:any[]
+interface CreateOptions<ThisValue,Args> {
+  expr?:CondExpression<ThisValue,Args>,
+  this?:ThisValue,
+  args?:Args
 }
 
-function isCreateOptions(opts:any): opts is CreateOptions {
+function isCreateOptions(opts:any): opts is CreateOptions<any,any> {
   return opts && (opts.expr || opts.this || opts.args)
 }
 
 
-export function create(expr:CondExpression): (thisArg?:any, args?:any[])=>OperatedResult;
-export function create(options:CreateOptions): (...rest: any[])=>OperatedResult;
-export function create(exprOrOpts: CondExpression|CreateOptions){
+export function create<ThisValue,Args>(expr:CondExpression<ThisValue,Args>): (thisArg?:ThisValue, args?:Args)=>OperatedResult;
+export function create(options:CreateOptions<any,any>): (...rest: any[])=>OperatedResult;
+export function create<ThisValue,Args>(exprOrOpts: CondExpression<ThisValue,Args>|CreateOptions<ThisValue,Args>){
 
   if (isCreateOptions(exprOrOpts)){
     var {expr,"this":thisValue,args} = exprOrOpts
@@ -439,7 +440,7 @@ export function create(exprOrOpts: CondExpression|CreateOptions){
     });
 
 
-    return  conditionOperat(...finalArgArr as [CondExpression, any, (any[] | undefined)] );
+    return  conditionOperat(...finalArgArr as [CondExpression<ThisValue,Args>, ThisValue, Args] );
   }
 
 
