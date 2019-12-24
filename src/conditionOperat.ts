@@ -215,6 +215,9 @@ interface conditionOperat<ThisValue,Args> {
  * 条件运算
  * 对一系列条件进行逻辑运算；
  * @param condExpress : CondExpression   条件表达式
+ * @param thisArg ？: any   设置条件表达式中 函数条件 的 this 的值
+ * @param args ？: any[]   设置条件表达式中 函数条件 的 参数序列
+ *
  * @return OperatedResult 返回布尔类型 或者 返回布尔类型的Promise类型 的值
  *
  *
@@ -418,6 +421,12 @@ function isCreateOptions(opts:any): opts is CreateOptions<any,any> {
 }
 
 
+/**
+ * 创建快捷运算函数
+ *
+ * 创建指定条件表达式的快捷运算函数
+ * @param expr
+ */
 export function create<ThisValue,Args>(expr:CondExpression<ThisValue,Args>): (thisArg?:ThisValue, args?:Args)=>OperatedResult;
 export function create(options:CreateOptions<any,any>): (...rest: any[])=>OperatedResult;
 export function create<ThisValue,Args>(exprOrOpts: CondExpression<ThisValue,Args>|CreateOptions<ThisValue,Args>){

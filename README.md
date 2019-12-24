@@ -11,7 +11,7 @@ conditionOperat 可以对一系列复杂的条件进行逻辑运算，条件可�
 
 主页：<https://github.com/GuoBinyong/condition-operat>
 
-**如果您在使用的过程中遇到了问题，或者有好的建议和想法，您都可以通过以下方式联系我，期待与您的交流：**  
+**如果您在使用的过程中遇到了问题，或者有好的建议和想法，您都可以通过以下方式联系我，期待与您的交流：**
 - 给该仓库提交 [issues][]
 - 给我 Pull requests
 - 邮箱：<guobinyong@qq.com>
@@ -112,7 +112,7 @@ var innerExpr = [
   true
 ];
 
-innerExpr.rel = "or";  
+innerExpr.rel = "or";
 
 
 var condExpr = [
@@ -120,7 +120,7 @@ var condExpr = [
   innerExpr,   // 表达式可以嵌套表达式
   true
 ];
-condExpr.not = true;  
+condExpr.not = true;
 
 
 conditionOperat(condExpr);  //结果： false
@@ -132,7 +132,7 @@ conditionOperat(condExpr);  //结果： false
 ```
 var condExpr = [
   function(){return false},   //表达式可以是个返回 另一个表达式的函数
-  function(){return "返回其它类型的值"}, 
+  function(){return "返回其它类型的值"},
   function(){
     return ()=>{return 5}
   },  //函数表达式 可以返回 另一个函数表达式
@@ -297,6 +297,128 @@ if (res instanceof Promise){
   console.log("condExpr条件表达式的值是：",res);
 }
 ```
+
+
+## 快捷工具
+条件运算函数 `conditionOperat(condExpress:CondExpression,thisArg?:ThisValue, args?:Args):OperatedResult` 可接收如下三个参数
+- condExpress : CondExpression   条件表达式
+- thisArg ？: any   设置条件表达式中 函数条件 的 this 的值
+- args ？: any[]   设置条件表达式中 函数条件 的 参数序列
+
+这三个参数中，只有 条件表达式 condExpress 是必须参数；
+
+有些时候，我们可能经常需要 对同一条件表达式 condExpress 进行运算，只是传不同的 thisArg 或 args ；
+
+比如：对表单中若干输入框进行验证，这些输入框的验证条件是一定的，但每次提交表单时，各个输入框的值是不一样的，对于这样的场景，我们每次进行条件运算时，都要传入同一 条件表达式 condExpress 和 包含各个输入框值的 args `conditionOperat(condExpress,null, args)` ，如果 每次表单的dom的结构都是一样的，也可以将 表单的 dom 对象 作为 thisArg 参数，让 函数条件 自动获取对应的输入框的值并验证，这样，我们不用每次再分别取各个输入框的值了，只需要给 `conditionOperat()` 传 条件表达式 condExpress 和 thisArg 就行了，如 `conditionOperat(condExpress,thisArg)` ；
+
+尽管这样，每次条件运算，还是需要传入一样的 条件表达式，这是重复的操作； 
+
+为了解决这类问题，我封装了一个工具函数 `create()` ，它根据给定的参数，来创建专门用来接收剩余参数的条件运算函数；
+
+示例如下：
+```
+// 验证名字
+function verifyName(target){
+  return target.name.trim().length > 0
+}
+
+
+//验证手机号
+function verifyPhone(target){
+  return /\d{11}/.test(target.phoneNum)
+}
+
+
+// 验证性别
+function verifyGender(target){
+  return /^男|女$/.test(target.gender)
+}
+
+
+// 条件表达式：名字、手机号、性格慎必须都要符合要求
+var condExpr = [verifyName,verifyPhone,verifyGender];
+
+
+
+/**
+ * 创建条件表达式 condExpr 和 thisValue (值为 `null`) 的快捷函数 operatWith ； 
+ * 
+ * 因为创建 `operatWith()` 时 给 `create()` 传了两个选项 expr 和 "this" ，还剩余一个选项 args 参数没有传，
+ * 所以 这个 operatWith() 快捷函数只接收一个参数，即 args ； 
+ */
+var operatWith = create({
+  expr:condExpr,
+  "this":null
+});
+
+
+// 被测试的目标
+var target = {
+  name:"郭斌勇",
+  gender:"男",
+  phoneNum:""
+};
+
+
+// 传入 args
+operatWith([target]);     //结果：false
+```
+
+或者
+
+```
+// 验证名字
+function verifyName(){
+  var inputDom = this.elements.name;
+  var name = inputDom.value;
+  return name.trim().length > 0
+}
+
+
+//验证手机号
+function verifyPhone(){
+  var inputDom = this.elements.phoneNum;
+  var phoneNum = inputDom.value;
+  return /\d{11}/.test(phoneNum)
+}
+
+
+// 验证性别
+function verifyGender(){
+  var inputDom = this.elements.gender;
+  var gender = inputDom.value;
+  return /^男|女$/.test(gender)
+}
+
+
+// 条件表达式：名字、手机号、性格慎必须都要符合要求
+var condExpr = [verifyName,verifyPhone,verifyGender];
+
+
+
+/**
+ * 创建条件表达式 condExpr 的快捷函数 operatWith ； 
+ * 
+ * 因为创建 `operatWith()` 时 给 `create()` 传了一个选项 expr ，还剩余二个选项 "this" 和 args 选项没有传，
+ * 所以 这个 operatWith() 快捷函数可以接收二个参数，即 "this" 和 args ； 但本示例中的 函数条件 只用到了 "this" 选项 ，没有用到 args ，所以，在使用 operatWith() 时，只需要给其传一个参数 thisValue 即可；
+ */
+var operatWith = create({expr:condExpr});
+
+
+// 被测试的目标
+var thisValue = document.getElementById("form");
+
+// 传入 thisValue 参数
+operatWith(thisValue);
+```
+
+其中，当传给 create() 的选项只包含 表达式 condExpr 时，可以直接将表达式 condExpr 作为参数传给 create() ，如 create(condExpr)
+
+
+
+
+
+
 
 
 
