@@ -78,7 +78,7 @@ conditionOperat(condExpr);  //结果： false
 
 ## 对一组表达式进行或运算
 ```
-// 对一组表达式做 与 运算
+// 对一组表达式做 或 运算
 var condExpr = [
   true,
   false,
@@ -93,7 +93,6 @@ conditionOperat(condExpr);  //结果： true
 
 ## 先或后非
 ```
-// 对一组表达式做 与 运算
 var condExpr = [
   true,
   false,
@@ -234,7 +233,7 @@ conditionOperat(condExpr);  //结果： false
 ```
 /*
  先对函数 求值，然后再取反；
- 选对函数 求值，得 true，再取反后，得 false
+ 先对函数 求值，得 true，再取反，得 false
  */
 var condExpr = function(){
   return true
