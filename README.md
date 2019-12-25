@@ -1,4 +1,4 @@
-[API帮助文档]: ./API帮助文档.md
+[API接口文档]: ./API接口文档.md
 
 [赞赏码]: ./赞赏码.JPG
 
@@ -35,7 +35,10 @@ conditionOperat 可以对一系列复杂的条件进行逻辑运算，条件可�
 
 
 
-# 使用示例
+# 教程
+
+**如果需要了解详细的接口信息，请到 [API接口文档][]**
+
 
 ## 最简单的使用
 ```
@@ -141,6 +144,46 @@ var condExpr = [
 
 conditionOperat(condExpr);  //结果： false
 ```
+
+
+在执行条件运算 `conditionOperat()` 时，你也可以设置函数条件在被调用时的 this 值 和 参数，如下：
+```
+// 验证名字
+function verifyName(phoneNum,gender){
+  var name = this.value;
+  return name.trim().length > 0
+}
+
+//验证手机号
+function verifyPhone(phoneNum,gender){
+  return /\d{11}/.test(phoneNum)
+}
+
+
+// 验证性别
+function verifyGender(phoneNum,gender){
+  return /^男|女$/.test(gender)
+}
+
+
+// 条件表达式：名字、手机号、性格慎必须都要符合要求
+var condExpr = [verifyName,verifyPhone,verifyGender];
+
+
+// 获取保存名字的输入框的dom元素 来作为 函数条件的 this 的值；
+var thisValue = document.getElementById("nameInput");
+
+// 给函数条件传递两个参数：手机号  和 性别
+var args = ["17639609033","男"];
+
+// conditionOperat() 的第一个参数是 条件表达式，第二个参数是 函数条件的 this 值，第三个参数是 函数条件 的参数数组
+conditionOperat(condExpr,thisValue,args);
+```
+
+
+**注意：**  
+thisValue 和 args 会被应用到所有的 函数条件，包括那些 运算过程 中产生的函数条件，比如：函数条件返回的函数条件、异步条件决议时传递出的 函数条件
+
 
 
 ## Promise类型的表达式
@@ -300,16 +343,16 @@ if (res instanceof Promise){
 
 
 ## 快捷工具
-条件运算函数 `conditionOperat(condExpress:CondExpression,thisArg?:ThisValue, args?:Args):OperatedResult` 可接收如下三个参数
+条件运算函数 `conditionOperat(condExpress:CondExpression,thisValue?:ThisValue, args?:Args):OperatedResult` 可接收如下三个参数
 - condExpress : CondExpression   条件表达式
-- thisArg ？: any   设置条件表达式中 函数条件 的 this 的值
+- thisValue ？: any   设置条件表达式中 函数条件 的 this 的值
 - args ？: any[]   设置条件表达式中 函数条件 的 参数序列
 
 这三个参数中，只有 条件表达式 condExpress 是必须参数；
 
-有些时候，我们可能经常需要 对同一条件表达式 condExpress 进行运算，只是传不同的 thisArg 或 args ；
+有些时候，我们可能经常需要 对同一条件表达式 condExpress 进行运算，只是传不同的 thisValue 或 args ；
 
-比如：对表单中若干输入框进行验证，这些输入框的验证条件是一定的，但每次提交表单时，各个输入框的值是不一样的，对于这样的场景，我们每次进行条件运算时，都要传入同一 条件表达式 condExpress 和 包含各个输入框值的 args `conditionOperat(condExpress,null, args)` ，如果 每次表单的dom的结构都是一样的，也可以将 表单的 dom 对象 作为 thisArg 参数，让 函数条件 自动获取对应的输入框的值并验证，这样，我们不用每次再分别取各个输入框的值了，只需要给 `conditionOperat()` 传 条件表达式 condExpress 和 thisArg 就行了，如 `conditionOperat(condExpress,thisArg)` ；
+比如：对表单中若干输入框进行验证，这些输入框的验证条件是一定的，但每次提交表单时，各个输入框的值是不一样的，对于这样的场景，我们每次进行条件运算时，都要传入同一 条件表达式 condExpress 和 包含各个输入框值的 args `conditionOperat(condExpress,null, args)` ，如果 每次表单的dom的结构都是一样的，也可以将 表单的 dom 对象 作为 thisValue 参数，让 函数条件 自动获取对应的输入框的值并验证，这样，我们不用每次再分别取各个输入框的值了，只需要给 `conditionOperat()` 传 条件表达式 condExpress 和 thisValue 就行了，如 `conditionOperat(condExpress,thisValue)` ；
 
 尽管这样，每次条件运算，还是需要传入一样的 条件表达式，这是重复的操作； 
 

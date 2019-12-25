@@ -166,21 +166,21 @@ function notOperat(target:any,notSequ:NotSequence):boolean {
 /**
  * 扁平化 函数条件
  * @param condExp : CondExpression   条件表达式；如果 condExp 不是函数条件，则不作处理 返回 condExp 自身
- * @param thisArg ?:  any   可选；函数条件的 this 的值
+ * @param thisValue ?:  any   可选；函数条件的 this 的值
  * @param args ?:any[]      可选；函数条件的 参数
  *
  * 函数条件可能还会返回函数条件，返回的函数条件可能还会返回函数条件，可以无休止地这样延续下去；
  * 本方法的作用就是对函数条件进行运算，直到返回的不是函数条件为止
  */
-function flatFunCondition<ThisValue,Args>(condExp: CondExpression<ThisValue,Args>,thisArg?:ThisValue, args?:Args): Exclude<CondExpression<ThisValue,Args>, FunCondition<ThisValue,Args>> {
+function flatFunCondition<ThisValue,Args>(condExp: CondExpression<ThisValue,Args>,thisValue?:ThisValue, args?:Args): Exclude<CondExpression<ThisValue,Args>, FunCondition<ThisValue,Args>> {
   if (isFunCondition(condExp)) {
     let notSequ = [condExp.not]
     // @ts-ignore
-    let funRes = condExp.apply(thisArg,args)
+    let funRes = condExp.apply(thisValue,args)
 
     if (isNotExpression(funRes)) {
       funRes.not = notOperat(funRes.not, notSequ)
-      return flatFunCondition(funRes,thisArg,args)
+      return flatFunCondition(funRes,thisValue,args)
     }
 
     return notOperat(funRes, notSequ)
@@ -204,7 +204,7 @@ return target instanceof Object || typeof target === "object"
 
 
 interface conditionOperat<ThisValue,Args> {
-  create(expr:CondExpression<ThisValue,Args>): (thisArg?:any, args?:any[])=>OperatedResult;
+  create(expr:CondExpression<ThisValue,Args>): (thisValue?:any, args?:any[])=>OperatedResult;
   create(options:CreateOptions<ThisValue,Args>): (...rest: any[])=>OperatedResult;
 }
 
@@ -215,10 +215,13 @@ interface conditionOperat<ThisValue,Args> {
  * 条件运算
  * 对一系列条件进行逻辑运算；
  * @param condExpress : CondExpression   条件表达式
- * @param thisArg ？: any   设置条件表达式中 函数条件 的 this 的值
- * @param args ？: any[]   设置条件表达式中 函数条件 的 参数序列
+ * @param thisValue ？: any   设置条件表达式中 函数条件 的 this 的值
+ * @param args ？: any[]   设置条件表达式中 函数条件 的 参数序列； 即该参数是个数组，里面包含传递给 条件函数 的参数
  *
  * @return OperatedResult 返回布尔类型 或者 返回布尔类型的Promise类型 的值
+ * 
+ * 注意：
+ * thisValue 和 args 会被应用到所有的 函数条件，包括那些 运算过程 中产生的函数条件，比如：函数条件返回的函数条件、异步条件决议时传递出的 函数条件
  *
  *
  * 特性：
@@ -233,7 +236,7 @@ interface conditionOperat<ThisValue,Args> {
  *    2. ConditionSet : 条件集；
  *    3. PromCondition : 异步条件；
  */
-export function conditionOperat<ThisValue,Args>(condExpress:CondExpression<ThisValue,Args>,thisArg?:ThisValue, args?:Args):OperatedResult {
+export function conditionOperat<ThisValue,Args>(condExpress:CondExpression<ThisValue,Args>,thisValue?:ThisValue, args?:Args):OperatedResult {
 
   if (isBoolCondition(condExpress)){
     return !!condExpress
@@ -258,7 +261,7 @@ export function conditionOperat<ThisValue,Args>(condExpress:CondExpression<ThisV
     //先对计算 不是 数组 和 不是 Promise 的 条件进行计算
     let orRes = condSet.some(function (condExp) {
 
-      condExp = flatFunCondition(condExp,thisArg,args)
+      condExp = flatFunCondition(condExp,thisValue,args)
 
       if (isBoolCondition(condExp)){
         return condExp
@@ -332,7 +335,7 @@ export function conditionOperat<ThisValue,Args>(condExpress:CondExpression<ThisV
 
     //先对计算 不是 数组 和 不是 Promise 的 条件进行计算
     let andRes = condSet.every(function (condExp) {
-      condExp = flatFunCondition(condExp,thisArg,args)
+      condExp = flatFunCondition(condExp,thisValue,args)
 
       if (isBoolCondition(condExp)){
         return condExp
@@ -408,12 +411,12 @@ export function conditionOperat<ThisValue,Args>(condExpress:CondExpression<ThisV
 
 
 /**
- * create 的选项对象
+ * 创建快捷运算函数时的配置选项对象；
  */
 interface CreateOptions<ThisValue,Args> {
-  expr?:CondExpression<ThisValue,Args>,
-  this?:ThisValue,
-  args?:Args
+  expr?:CondExpression<ThisValue,Args>,   //条件表达式
+  this?:ThisValue,    //设置条件表达式中 函数条件 的 this 的值
+  args?:Args    //设置条件表达式中 函数条件 的 参数序列；即该参数是个数组，里面包含传递给 条件函数 的参数
 }
 
 function isCreateOptions(opts:any): opts is CreateOptions<any,any> {
@@ -423,11 +426,27 @@ function isCreateOptions(opts:any): opts is CreateOptions<any,any> {
 
 /**
  * 创建快捷运算函数
+ * 快捷运算函数 是带有一部分参数值，只接收剩余参数 的条件运算函数；
  *
  * 创建指定条件表达式的快捷运算函数
- * @param expr
  */
-export function create<ThisValue,Args>(expr:CondExpression<ThisValue,Args>): (thisArg?:ThisValue, args?:Args)=>OperatedResult;
+
+/**
+ * create<ThisValue,Args>(expr:CondExpression<ThisValue,Args>): (thisValue?:ThisValue, args?:Args)=>OperatedResult
+ *
+ * @param expr:CondExpression<ThisValue,Args>   条件表达式
+ * @return `(thisValue?:ThisValue, args?:Args)=>OperatedResult`  返回一个函数，该函数可接收 thisValue 和 args 两个参数；
+ * 
+ */
+export function create<ThisValue,Args>(expr:CondExpression<ThisValue,Args>): (thisValue?:ThisValue, args?:Args)=>OperatedResult;
+
+/**
+ * create(options:CreateOptions<any,any>): (...rest: any[])=>OperatedResult
+ * 
+ * @param options:CreateOptions<any,any>   创建选项对象
+ * @return `(...rest: any[])=>OperatedResult`  返回一个函数，该函数可接收 选项对象 options 中没有提供的剩余参数，剩余的参数按照 `expr、this、args` 顺序（即 条件运算函数 `conditionOperat()` 的参数顺序）进行排列；
+ * 
+ */
 export function create(options:CreateOptions<any,any>): (...rest: any[])=>OperatedResult;
 export function create<ThisValue,Args>(exprOrOpts: CondExpression<ThisValue,Args>|CreateOptions<ThisValue,Args>){
 
