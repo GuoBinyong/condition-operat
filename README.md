@@ -1,12 +1,41 @@
 [API接口文档]: ./API接口文档.md
 
-[赞赏码]: ./赞赏码.JPG
 
 [git仓库]: https://github.com/GuoBinyong/condition-operat
 [issues]: https://github.com/GuoBinyong/condition-operat/issues
 
 
-# 简介
+
+<!-- TOC -->
+
+- [1. 简介](#1-简介)
+- [2. 特性](#2-特性)
+- [3. 安装方式](#3-安装方式)
+    - [方式1：通过 npm 安装](#方式1通过-npm-安装)
+    - [方式2：直接下载原代码](#方式2直接下载原代码)
+    - [方式3：通过`<script>`标签引入](#方式3通过script标签引入)
+- [4. 教程](#4-教程)
+    - [4.1. 最简单的使用](#41-最简单的使用)
+    - [4.2. 对一组表达式进行与运算](#42-对一组表达式进行与运算)
+    - [4.3. 对一组表达式进行或运算](#43-对一组表达式进行或运算)
+    - [4.4. 先或后非](#44-先或后非)
+    - [4.5. 表达式可以嵌套](#45-表达式可以嵌套)
+    - [4.6. 函数类型的表达式](#46-函数类型的表达式)
+    - [4.7. Promise类型的表达式](#47-promise类型的表达式)
+    - [4.8. 非运算](#48-非运算)
+        - [4.8.1. 普通对象的非运算](#481-普通对象的非运算)
+        - [4.8.2. 函数的非运算](#482-函数的非运算)
+        - [4.8.3. Promise的非运算](#483-promise的非运算)
+        - [4.8.4. 条件集的非运算](#484-条件集的非运算)
+    - [4.9. Promise与其它类型的表达式混合使用](#49-promise与其它类型的表达式混合使用)
+    - [4.10. 快捷工具](#410-快捷工具)
+
+<!-- /TOC -->
+
+
+
+
+# 1. 简介
 conditionOperat 可以对一系列复杂的条件进行逻辑运算，条件可以是基本类型的数据，也可以是个函数，甚至可以是个异步条件，即 Promise；或者是个条件集，条件集也可以再嵌套条件集；可以指定条件之间的逻辑关系，如：与、或、非；
 
 主页：<https://github.com/GuoBinyong/condition-operat>
@@ -20,7 +49,7 @@ conditionOperat 可以对一系列复杂的条件进行逻辑运算，条件可�
 
 
 
-# 特性
+# 2. 特性
 - 可以指定条件条件表达式的间的逻辑关系：与、或、非；
 - 条件表达式可以任意层级嵌套，即：条件集 可以 嵌套 条件集；
 - 短路运算
@@ -36,13 +65,13 @@ conditionOperat 可以对一系列复杂的条件进行逻辑运算，条件可�
 
 
 
-# 安装方式
+# 3. 安装方式
 目前，安装方式有以下几种：
 
 
 ## 方式1：通过 npm 安装
 ```
-npm install --save conditionOperat
+npm install --save condition-operat
 ```
 
 ## 方式2：直接下载原代码
@@ -87,18 +116,18 @@ import conditionOperat from "path/to/package/conditionOperat";
 
 
 
-# 教程
+# 4. 教程
 
 **如果需要了解详细的接口信息，请到 [API接口文档][]**
 
 
-## 最简单的使用
+## 4.1. 最简单的使用
 ```
 // 求表达式 true 的值
 conditionOperat(true);  //结果： true
 ```
 
-## 对一组表达式进行与运算
+## 4.2. 对一组表达式进行与运算
 对于基本类型的数据(如：boolean、number、string、symbol、undefined、null )都会被作为布尔值来对待，即会被简单的转为布尔类型；
 ```
 // 对一组表达式做 与 运算；
@@ -128,7 +157,7 @@ conditionOperat(condExpr);  //结果： false
 
 
 
-## 对一组表达式进行或运算
+## 4.3. 对一组表达式进行或运算
 ```
 // 对一组表达式做 或 运算
 var condExpr = [
@@ -143,7 +172,7 @@ conditionOperat(condExpr);  //结果： true
 ```
 
 
-## 先或后非
+## 4.4. 先或后非
 ```
 var condExpr = [
   true,
@@ -158,7 +187,7 @@ conditionOperat(condExpr);  //结果： false
 ```
 
 
-## 表达式可以嵌套
+## 4.5. 表达式可以嵌套
 ```
 //里面的表达式
 var innerExpr = [
@@ -180,7 +209,7 @@ condExpr.not = true;
 conditionOperat(condExpr);  //结果： false
 ```
 
-## 函数类型的表达式
+## 4.6. 函数类型的表达式
 函数也可作为表达式，运算时会将函数的返回值作新的表达式重新计算，如果函数返回的还是函数，则会对该返回的函数继续运算；
 函数也可以返回一个 Promise，针对 Promise类型表达式的运算方式，详见[Promise类型的表达式][]
 ```
@@ -237,7 +266,7 @@ thisValue 和 args 会被应用到所有的 函数条件，包括那些 运算�
 
 
 
-## Promise类型的表达式
+## 4.7. Promise类型的表达式
 Promise 也可以作为表达式，当 Promise 作为表达式时，会根据 resolve 的值来进行计算，如果 Promise 是被 reject 了，则会被作为 假 false 来处理；
 
 Promise 决议的值也可以是其它复杂的条件表达式，如：函数、数组（条件集）等等；
@@ -268,10 +297,10 @@ console.log(res)
 
 
 
-## 非运算
+## 4.8. 非运算
 对于任何对象（比如：普通对象、函数、Promise、数组 等等），都可以通过向其添加 not 属性来设置 非运算；设置非运算后，会先对 该对象进行求值，然后再对求得的值取反；
 
-### 普通对象的非运算
+### 4.8.1. 普通对象的非运算
 ```
 /*
  先对对象 求值，然后再取反；
@@ -281,7 +310,7 @@ var condExpr = {not:true};
 conditionOperat(condExpr);  //结果： false
 ```
 
-### 函数的非运算
+### 4.8.2. 函数的非运算
 ```
 /*
  先对函数 求值，然后再取反；
@@ -294,7 +323,7 @@ condExpr.not = true;
 conditionOperat(condExpr);  //结果： false
 ```
 
-### Promise的非运算
+### 4.8.3. Promise的非运算
 ```
 /*
  先对 Promise 求值，然后再取反；
@@ -312,7 +341,7 @@ conditionOperat(condExpr).then(function(vlaue){
 });
 ```
 
-### 条件集的非运算
+### 4.8.4. 条件集的非运算
 ```
 /*
  先运算 数组中所有元素相或 的值，为 true，然后再取反，得 false
@@ -331,7 +360,7 @@ conditionOperat(condExpr);  //结果： false
 
 
 
-## Promise与其它类型的表达式混合使用
+## 4.9. Promise与其它类型的表达式混合使用
 Promise类型的条件表达工也可以与其它类型的条件表达式混合使用；
 
 对于带有 Promise 类型的条件表达式，conditionOperat(condExpr) 返回的结果可能是 布尔值，也可能是 Promise ；这取决于通过 非 Promise 的表达式是否能求出 condExpr 的值，如果能，则返回的是布尔值，如果不能，则 condExpr 的值只能依赖于 其中的 Promise 表达式，则 conditionOperat(condExpr) 就会返回一个 Promise ；
@@ -393,7 +422,7 @@ if (res instanceof Promise){
 ```
 
 
-## 快捷工具
+## 4.10. 快捷工具
 条件运算函数 `conditionOperat(condExpress:CondExpression,thisValue?:ThisValue, args?:Args):OperatedResult` 可接收如下三个参数
 - condExpress : CondExpression   条件表达式
 - thisValue ？: any   设置条件表达式中 函数条件 的 this 的值
@@ -411,7 +440,7 @@ if (res instanceof Promise){
 
 
 有两种方式可以访问到 `create()` 函数：
-1. 直接导入create函数 `import { create，conditionOperat } from "conditionOperat"`;
+1. 直接导入create函数 `import { create，conditionOperat } from "condition-operat"`;
 2. 通过 conditionOperat 的 create 方法来访问：`conditionOperat.create(options)`;
 
 
@@ -516,3 +545,12 @@ operatWith(thisValue);
 
 
 
+
+
+
+
+--------------------
+
+> 有您的支持，我会在开源的道路上，越走越远
+
+![赞赏码](https://raw.githubusercontent.com/GuoBinyong/sshcp/master/赞赏码.JPG)
