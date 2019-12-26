@@ -264,7 +264,7 @@ export function conditionOperat<ThisValue,Args>(condExpress:CondExpression<ThisV
       condExp = flatFunCondition(condExp,thisValue,args)
 
       if (isBoolCondition(condExp)){
-        return condExp
+        return condExp as boolean
       }
 
       //先跳过数组类型
@@ -298,7 +298,7 @@ export function conditionOperat<ThisValue,Args>(condExpress:CondExpression<ThisV
         return false
       }
 
-      return cond
+      return cond as boolean
     });
     if (condSetArrRes) {
       return notOper(true)
@@ -338,7 +338,7 @@ export function conditionOperat<ThisValue,Args>(condExpress:CondExpression<ThisV
       condExp = flatFunCondition(condExp,thisValue,args)
 
       if (isBoolCondition(condExp)){
-        return condExp
+        return condExp as boolean
       }
 
       //先跳过数组类型
@@ -372,7 +372,7 @@ export function conditionOperat<ThisValue,Args>(condExpress:CondExpression<ThisV
           return true
         }
 
-        return cond
+        return cond as boolean
       });
       if (!condSetArrRes) {
         return notOper(false)
