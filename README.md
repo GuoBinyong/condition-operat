@@ -35,6 +35,58 @@ conditionOperat 可以对一系列复杂的条件进行逻辑运算，条件可�
 
 
 
+
+# 安装方式
+目前，安装方式有以下几种：
+
+
+## 方式1：通过 npm 安装
+```
+npm install --save conditionOperat
+```
+
+## 方式2：直接下载原代码
+您可直接从 [git仓库][] 下载代码文件；
+仓库里包含了 源码 和 编译后的代码文件 ：
+- conditionOperat 的源码文件是 `src/conditionOperat` 有 TypeScript 版本 和 JavaScript 版本；
+- conditionOperat 的编译后的文件是 `dist/conditionOperat.js` ； 
+
+您可以直接把任一 源码 或 编译后 的文件拷贝到您的项目中去；然后使用如下代码在您的项目中引入 `conditionOperat`：
+```
+import { conditionOperat , create } from "path/to/package/conditionOperat";
+```
+或者
+```
+import conditionOperat from "path/to/package/conditionOperat";
+```
+
+
+
+## 方式3：通过`<script>`标签引入
+您可直接下载 [git仓库][] 中的 `dist/conditionOperat.js` 文件，然后使用如下代码引用 和 使用 conditionOperat：
+
+
+引用 conditionOperat.js
+```
+<script src="path/to/package/conditionOperat.js"></script>
+```
+
+使用全局的 conditionOperat() 或 快捷工具 conditionOperat.create()
+```
+<script>
+// 使用全局的 conditionOperat()
+    var condExpr = [true,false,true];
+    conditionOperat(condExpr);
+// 使用快捷工具
+     var operatWith = conditionOperat.create(condExpr);
+</script>
+```
+
+
+
+
+
+
 # 教程
 
 **如果需要了解详细的接口信息，请到 [API接口文档][]**
@@ -357,7 +409,13 @@ if (res instanceof Promise){
 
 为了解决这类问题，我封装了一个工具函数 `create()` ，它根据给定的参数，来创建专门用来接收剩余参数的条件运算函数；
 
-示例如下：
+
+有两种方式可以访问到 `create()` 函数：
+1. 直接导入create函数 `import { create，conditionOperat } from "conditionOperat"`;
+2. 通过 conditionOperat 的 create 方法来访问：`conditionOperat.create(options)`;
+
+
+`create()`的使用示例如下：
 ```
 // 验证名字
 function verifyName(target){

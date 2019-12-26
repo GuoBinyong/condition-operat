@@ -160,7 +160,14 @@ type BaseCondition = Exclude<Condition<any,any>, FunCondition<any,any> | PromCon
 
 
 # 创建快捷运算函数 `create()`
-`create()` 函数是用来创建 快捷运算函数 的工具；快捷运算函数 是带有一部分参数值，只接收剩余参数 的条件运算函数；其类型如下：
+`create()` 函数是用来创建 快捷运算函数 的工具；快捷运算函数 是带有一部分参数值，只接收剩余参数 的条件运算函数；
+
+有两种方式可以访问到 `create()` 函数：
+1. 直接导入create函数 `import { create，conditionOperat } from "conditionOperat"`;
+2. 通过 conditionOperat 的 create 方法来访问：`conditionOperat.create(options)`;
+
+
+`create()`函数的类型如下：
 
 ## `create(expr)`
 ```
