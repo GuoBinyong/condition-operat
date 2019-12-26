@@ -1,15 +1,10 @@
 {
   "name": "conditionOperat",
-  "version": "0.1.0",
-  "description": "构建前端库的webpack打包配置模板",
-  "main": "prod/conditionOperat.js",
+  "version": "1.0.0",
+  "description": "conditionOperat 可以对一系列复杂的条件进行逻辑运算，条件可以是基本类型的数据，也可以是个函数，甚至可以是个异步条件，即 Promise；或者是个条件集，条件集也可以再嵌套条件集；可以指定条件之间的逻辑关系，如：与、或、非",
+  "main": "dist/conditionOperat.js",
   "module": "src/conditionOperat.js",
   "sideEffects": true,
-  "browserslist": [
-    "> 1%",
-    "last 2 versions",
-    "not ie <= 8"
-  ],
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "webpack --config build/webpack.dev.config.js",
@@ -18,19 +13,25 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://gitee.com/guobinyong/"
+    "url": "https://github.com/GuoBinyong/condition-operat"
   },
   "keywords": [
-    "前端库",
-    "web库",
-    "library",
+    "逻辑运算",
+    "条件逻辑运算",
+    "条件运算",
     "webpack",
-    "打包",
-    "配置",
-    "模板"
+    "condition",
+    "logic",
+    "operat",
+    "logic operations"
   ],
   "author": "郭斌勇",
   "license": "ISC",
+  "files":[
+    "src/*",
+    "prod/*",
+    "dist/*"
+  ],
   "devDependencies": {
     "@babel/core": "^7.4.4",
     "@babel/preset-env": "^7.4.5",
