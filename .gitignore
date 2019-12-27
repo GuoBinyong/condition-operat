@@ -25,7 +25,7 @@
 # package-lock.json 是 npm 包锁定文件;如果希望所有协作开发人员的 npm 包的版本完全一致，则可以不忽略该文件
 package-lock.json
 node_modules/
-dist/
+#dist/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
@@ -33,7 +33,7 @@ yarn-error.log*
 /test/e2e/reports/
 selenium-debug.log
 dev/
-prod/
+#prod/
 
 
 # 本地环境文件
