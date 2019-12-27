@@ -253,3 +253,6 @@ export function create(exprOrOpts) {
     return operatWith;
 }
 conditionOperat.create = create;
+
+
+export default conditionOperat
