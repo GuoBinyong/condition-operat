@@ -1,5 +1,12 @@
-var path = require('path');
-const utils = require('./utils');
+/* 
+开发 和 生产两种模式公共的 webpack 配置文件
+https://github.com/GuoBinyong/library-webpack-template
+*/
+
+const path = require('path');
+const CopyWebpackPlugin = require('copy-webpack-plugin')
+const tools = require('./tools');
+const npmConfig = require("../package.json");
 
 
 function resolve(dir) {
@@ -9,56 +16,43 @@ function resolve(dir) {
 
 /**
  * 生成 Webpack 配置对象
- * @param  projecConfig : ProjecConfig    项目配置对象
+ * @param  projectConfig : ProjecConfig    项目配置对象
  */
-module.exports = function createWebpackConfig(projecConfig) {
+module.exports = function createWebpackConfig(projectConfig) {
 
 
   function assetsPath(_path) {
-    return path.posix.join(projecConfig.staticOutDirectory, _path)
+    return path.posix.join(projectConfig.staticOutDirectory, _path)
   }
 
-  var libraryName = projecConfig.library;
-
-  const createLintingRule = () => ({
-    test: /\.(js|vue)$/,
-    loader: 'eslint-loader',
-    enforce: 'pre',
-    include: [resolve('src'), resolve('test')],
-    options: {
-      formatter: require('eslint-formatter-friendly'),
-      emitWarning: !projecConfig.dev.showEslintErrorsInOverlay
-    }
-  });
-
-
+  var libraryName = projectConfig.library || tools.stringToCamelFormat(npmConfig.name);
+  
 
   const wpConfig = {
-    target: projecConfig.target,  //node  web 等等
+    target: projectConfig.target,  //node  web 等等
     context: path.resolve(__dirname, '../'),
     entry: {
-      [libraryName]: projecConfig.entry,
+      [libraryName]: projectConfig.entry,
     },
     output: {
-      filename: projecConfig.filename || '[name].js',
+      filename: projectConfig.filename || '[name].js',
       library: libraryName,
-      libraryTarget: projecConfig.libraryTarget,
-      libraryExport: projecConfig.libraryExport,
+      libraryTarget: projectConfig.libraryTarget,
+      libraryExport: projectConfig.libraryExport,
     },
-    externals: projecConfig.externals,
+    externals: projectConfig.externals,
     resolve: {
-      extensions: ['.tsx', '.ts', '.js', '.jsx', '.json'],
-      alias: projecConfig.alias,
+      extensions: projectConfig.extensions,
+      alias: projectConfig.alias,
     },
     module: {
       rules: [
-        // ...(projecConfig.dev.useEslint ? [createLintingRule()] : []),
         {
           test: /\.js$/,
           use: {
             loader: "babel-loader",
             options: {
-              presets: utils.createBabelPresets("js")
+              presets: tools.createBabelPresets("js")
             }
           },
           exclude: /node_modules/
@@ -68,7 +62,7 @@ module.exports = function createWebpackConfig(projecConfig) {
           use: {
             loader: "babel-loader",
             options: {
-              presets: utils.createBabelPresets("jsx")
+              presets: tools.createBabelPresets("jsx")
             }
           },
           exclude: /node_modules/
@@ -114,18 +108,35 @@ module.exports = function createWebpackConfig(projecConfig) {
 
 
   // 拷贝静态资源插件
-  const staticDirectory = projecConfig.staticDirectory;
+  const staticDirectory = projectConfig.staticDirectory;
   if (staticDirectory) {
     // https://github.com/ampedandwired/html-webpack-plugin
     const copyPlugin = new CopyWebpackPlugin([
       {
         from: resolve(staticDirectory),
-        to: projecConfig.staticOutDirectory,
+        to: projectConfig.staticOutDirectory,
         ignore: ['.*']
       }
     ]);
 
     plugins.push(htmlPlugin);
+  }
+
+
+
+  let baReport = projectConfig.bundleAnalyzerReport;
+  if (baReport === undefined){
+    baReport = process.env.npm_config_report;
+  }
+
+  
+  if (baReport) {
+    const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin;
+    let baOpts = projectConfig.bundleAnalyzerOptions || {};
+    if(!baOpts.analyzerPort){
+      baOpts.analyzerPort = "auto";
+    }
+    plugins.push(new BundleAnalyzerPlugin(baOpts));
   }
 
 

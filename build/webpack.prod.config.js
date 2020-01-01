@@ -1,5 +1,11 @@
+/* 
+生产模式 特有的 webpack 配置文件
+https://github.com/GuoBinyong/library-webpack-template
+*/
+
+
 const path = require('path');
-const utils = require('./utils');
+const tools = require('./tools');
 const merge = require('webpack-merge');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
@@ -15,14 +21,14 @@ const createTsConfig = require("./tsconfig.prod.js");
 
 /**
  * 生成 Webpack 配置对象
- * @param  projecConfig : ProjecConfig    项目配置对象
+ * @param  projectConfig : ProjecConfig    项目配置对象
  */
-function createWebpackConfig(projecConfig) {
+function createWebpackConfig(projectConfig) {
 
-  const tsConfig = createTsConfig(projecConfig);
-  const base = createBaseConfig(projecConfig);
+  const tsConfig = createTsConfig(projectConfig);
+  const base = createBaseConfig(projectConfig);
 
-  const outputPath = projecConfig.build.outputPath;
+  const outputPath = projectConfig.build.outputPath;
 
 
   if (tsConfig.compilerOptions.declaration) {
@@ -33,19 +39,19 @@ function createWebpackConfig(projecConfig) {
   const wpConfig = {
     mode: "production",
     output: {
-      path: projecConfig.build.outputPath,
+      path: projectConfig.build.outputPath,
     },
-    devtool: projecConfig.build.sourceMap ? projecConfig.build.devtool : false,
+    devtool: projectConfig.build.sourceMap ? projectConfig.build.devtool : false,
 
     module: {
       rules: [
-        ...utils.styleLoaders({
-          sourceMap: projecConfig.build.productionSourceMap,
+        ...tools.styleLoaders({
+          sourceMap: projectConfig.build.productionSourceMap,
           extract: true,
           usePostCSS: true
         }),
         // TypeScript 的 Loader
-        utils.createTsParseLoader(projecConfig.tsParseLoader,{exclude: /node_modules/},tsConfig),
+        tools.createTsParseLoader(projectConfig.tsconfig && projectConfig.tsconfig.loader,{exclude: /node_modules/},tsConfig),
       ]
     },
 
@@ -63,7 +69,7 @@ function createWebpackConfig(projecConfig) {
       // Compress extracted CSS. We are using this plugin so that possible
       // duplicated CSS from different components can be deduped.
       new OptimizeCSSPlugin({
-        cssProcessorOptions: projecConfig.build.productionSourceMap
+        cssProcessorOptions: projectConfig.build.productionSourceMap
           ? { safe: true, map: { inline: false } }
           : { safe: true }
       }),
@@ -83,14 +89,14 @@ function createWebpackConfig(projecConfig) {
 
 
   // Html模板插件
-  const htmlTemplate = projecConfig.htmlTemplate;
+  const htmlTemplate = projectConfig.htmlTemplate;
   if (htmlTemplate) {
 
     // generate dist index.html with correct asset hash for caching.
     // you can customize output by editing /index.html
     // see https://github.com/ampedandwired/html-webpack-plugin
     const htmlPlugin = new HtmlWebpackPlugin({
-      filename: path.resolve(__dirname, "..", projecConfig.build.outputPath, projecConfig.htmlOut),
+      filename: path.resolve(__dirname, "..", projectConfig.build.outputPath, projectConfig.htmlOut),
       template: htmlTemplate,
       inject: true,
       minify: {
@@ -117,15 +123,6 @@ function createWebpackConfig(projecConfig) {
 
 
   const webpackConfig = merge.smart(base, wpConfig);
-
-
-
-
-
-  if (projecConfig.build.bundleAnalyzerReport) {
-    const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin
-    webpackConfig.plugins.push(new BundleAnalyzerPlugin())
-  }
 
   return webpackConfig;
 

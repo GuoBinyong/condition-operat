@@ -1,4 +1,16 @@
 /**
+ * conditionOperat 可以对一系列复杂的条件进行逻辑运算，条件可以是基本类型的数据，也可以是个函数，甚至可以是个异步条件，即 Promise；或者是个条件集，条件集也可以再嵌套条件集；可以指定条件之间的逻辑关系，如：与、或、非；
+ *
+ * - 主页：<https://github.com/GuoBinyong/condition-operat>
+ *
+ * **如果您在使用的过程中遇到了问题，或者有好的建议和想法，您都可以通过以下方式联系我，期待与您的交流：**
+ * - 给该仓库提交 issues
+ * - 给我 Pull requests
+ * - 邮箱：<guobinyong@qq.com>
+ * - QQ：guobinyong@qq.com
+ * - 微信：keyanzhe
+ */
+/**
  * NotExpression 的类型守卫
  * @param condExp : CondExpression 表达式
  */
