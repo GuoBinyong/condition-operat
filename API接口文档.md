@@ -14,7 +14,7 @@
 - [创建快捷运算函数 `create()`](#创建快捷运算函数-create)
     - [`create(expr)`](#createexpr)
     - [`create(options)`](#createoptions)
-- [创建选项 CreateOptions](#创建选项-createoptions)
+- [创建选项 ConditionOptions](#创建选项-createoptions)
 
 <!-- /TOC -->
 
@@ -180,18 +180,18 @@ create<ThisValue,Args>(expr:CondExpression<ThisValue,Args>): (thisValue?:ThisVal
 
 ## `create(options)`
 ```
-create(options:CreateOptions<any,any>): (...rest: any[])=>OperatedResult;
+create(options:ConditionOptions<any,any>): (...rest: any[])=>OperatedResult;
 ```
-- @param options:CreateOptions<any,any>   创建选项对象
+- @param options:ConditionOptions<any,any>   创建选项对象
 - @return `(...rest: any[])=>OperatedResult`  返回一个函数，该函数可接收 选项对象 options 中没有提供的剩余参数，剩余的参数按照 `expr、this、args` 顺序（即 条件运算函数 `conditionOperat()` 的参数顺序）进行排列；
 
 
 
 
-# 创建选项 CreateOptions
+# 创建选项 ConditionOptions
 创建快捷运算函数时的配置选项对象；
 ```
-interface CreateOptions<ThisValue,Args> {
+interface ConditionOptions<ThisValue,Args> {
   expr?:CondExpression<ThisValue,Args>,   //条件表达式
   this?:ThisValue,    //设置条件表达式中 函数条件 的 this 的值
   args?:Args    //设置条件表达式中 函数条件 的 参数序列；即该参数是个数组，里面包含传递给 条件函数 的参数

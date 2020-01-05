@@ -84,7 +84,7 @@ interface FunCondition<ThisValue,Args> extends NotExpression {
  * FunCondition 的类型守卫
  * @param condExp : CondExpression 表达式
  */
-function isFunCondition<ThisValue,Args extends any[]>(condExp:CondExpression<ThisValue,Args>): condExp is FunCondition<ThisValue,Args> {
+function isFunCondition<ThisValue,Args>(condExp:CondExpression<ThisValue,Args>): condExp is FunCondition<ThisValue,Args> {
   return typeof condExp === "function"
 }
 
@@ -211,17 +211,23 @@ function flatFunCondition<ThisValue,Args>(condExp: CondExpression<ThisValue,Args
  *
  * 仅通过 target instanceof Object 判断是不行的，因为 对于 Object.create(null) 创建的对象 通过 ` Object.create(null) instanceof Object ` 来判断 返回的是 false
  * 即：通过 Object.create(null) 创建的对象是不被 instanceof  认为是继续于 Object 的
+ * 
+ * typeof null 也返回 "object"
  */
 function isObject(target:any):boolean {
-return target instanceof Object || typeof target === "object"
+// return target instanceof Object || typeof target === "object"
+return  target && typeof target === "object"
 }
 
 
 
 interface conditionOperat<ThisValue,Args> {
   create(expr:CondExpression<ThisValue,Args>): (thisValue?:any, args?:any[])=>OperatedResult;
-  create(options:CreateOptions<ThisValue,Args>): (...rest: any[])=>OperatedResult;
+  create(options:ConditionOptions<ThisValue,Args>): (...rest: any[])=>OperatedResult;
 }
+
+
+
 
 
 
@@ -251,7 +257,19 @@ interface conditionOperat<ThisValue,Args> {
  *    2. ConditionSet : 条件集；
  *    3. PromCondition : 异步条件；
  */
-export function conditionOperat<ThisValue,Args>(condExpress:CondExpression<ThisValue,Args>,thisValue?:ThisValue, args?:Args):OperatedResult {
+export function conditionOperat<ThisValue,Args>(...exprOptions:ExpressionOptions<ThisValue,Args>[]):OperatedResult;
+export function conditionOperat<ThisValue,Args>(condExpress:CondExpression<ThisValue,Args>,...exprOptions:ExpressionOptions<ThisValue,Args>[]):OperatedResult;
+export function conditionOperat<ThisValue,Args>(exprOrOptions:CondExpression<ThisValue,Args>|ExpressionOptions<ThisValue,Args>,...exprOptions:ExpressionOptions<ThisValue,Args>[]):OperatedResult {
+
+  
+  if (isExpressionOptions<ThisValue,Args>(exprOrOptions)){
+    var firstExprOpts = exprOrOptions;
+  }else {
+    firstExprOpts = {expr:exprOrOptions};
+  }
+
+  var finalExprOptions = Object.assign({},firstExprOpts,...exprOptions);
+
 
   if (isBoolCondition(condExpress)){
     return !!condExpress
@@ -425,18 +443,70 @@ export function conditionOperat<ThisValue,Args>(condExpress:CondExpression<ThisV
 }
 
 
-/**
- * 创建快捷运算函数时的配置选项对象；
+
+
+
+
+/* 
+条件map
+条件选项
+表达式选项
+
+export function conditionOperat<ThisValue,Args>(condOptions):OperatedResult;
+export function conditionOperat<ThisValue,Args>(condExpress:CondExpression<ThisValue,Args>,condMapOrOptions):OperatedResult;
+export function conditionOperat<ThisValue,Args>(condExpress:CondExpression<ThisValue,Args>,condMap):OperatedResult;
+export function conditionOperat<ThisValue,Args>(condExpress:CondExpression<ThisValue,Args>,condOptions,condMap):OperatedResult;
+export function conditionOperat<ThisValue,Args>(condExpress:CondExpression<ThisValue,Args>,condOptions):OperatedResult;
  */
-interface CreateOptions<ThisValue,Args> {
+
+
+
+
+
+/**
+ * 条件选项类型
+ */
+interface ConditionOptions<ThisValue,Args> {
   expr?:CondExpression<ThisValue,Args>,   //条件表达式
   this?:ThisValue,    //设置条件表达式中 函数条件 的 this 的值
   args?:Args    //设置条件表达式中 函数条件 的 参数序列；即该参数是个数组，里面包含传递给 条件函数 的参数
 }
 
-function isCreateOptions(opts:any): opts is CreateOptions<any,any> {
+function isConditionOptions<ThisValue,Args>(opts:any): opts is ConditionOptions<ThisValue,Args> {
   return opts && (opts.expr || opts.this || opts.args)
 }
+
+
+
+/**
+ * 条件映射类型；条件Map
+ */
+/* type ConditionMap<ThisValue, Args> = {
+  [key in string | number | symbol]: CondExpression<ThisValue, Args>
+} */
+interface ConditionMap<ThisValue, Args>  {
+  [prop : string]: CondExpression<ThisValue, Args>;
+}
+
+
+function isConditionMap<ThisValue,Args>(opts:any): opts is ConditionMap<ThisValue,Args> {
+  return opts && typeof opts === "object" && !Array.isArray(opts)
+}
+
+
+/**
+ * 条件选项类型
+ */
+type ExpressionOptions<ThisValue,Args> = ConditionOptions<ThisValue,Args> & ConditionMap<ThisValue, Args> 
+
+function isExpressionOptions<ThisValue,Args>(opts:any): opts is ExpressionOptions<ThisValue,Args> {
+  return isConditionOptions<ThisValue,Args>(opts) || isConditionMap<ThisValue,Args>(opts)
+}
+
+
+
+
+
 
 
 /**
@@ -456,16 +526,16 @@ function isCreateOptions(opts:any): opts is CreateOptions<any,any> {
 export function create<ThisValue,Args>(expr:CondExpression<ThisValue,Args>): (thisValue?:ThisValue, args?:Args)=>OperatedResult;
 
 /**
- * create(options:CreateOptions<any,any>): (...rest: any[])=>OperatedResult
+ * create(options:ConditionOptions<any,any>): (...rest: any[])=>OperatedResult
  * 
- * @param options:CreateOptions<any,any>   创建选项对象
+ * @param options:ConditionOptions<any,any>   创建选项对象
  * @return `(...rest: any[])=>OperatedResult`  返回一个函数，该函数可接收 选项对象 options 中没有提供的剩余参数，剩余的参数按照 `expr、this、args` 顺序（即 条件运算函数 `conditionOperat()` 的参数顺序）进行排列；
  * 
  */
-export function create(options:CreateOptions<any,any>): (...rest: any[])=>OperatedResult;
-export function create<ThisValue,Args>(exprOrOpts: CondExpression<ThisValue,Args>|CreateOptions<ThisValue,Args>){
+export function create(options:ConditionOptions<any,any>): (...rest: any[])=>OperatedResult;
+export function create<ThisValue,Args>(exprOrOpts: CondExpression<ThisValue,Args>|ConditionOptions<ThisValue,Args>){
 
-  if (isCreateOptions(exprOrOpts)){
+  if (isConditionOptions(exprOrOpts)){
     var {expr,"this":thisValue,args} = exprOrOpts
   }else {
     expr = exprOrOpts
