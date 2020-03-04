@@ -13,6 +13,8 @@
 
 
 
+
+
 /**
  * 非运算表达式
  */
@@ -33,6 +35,15 @@ function isNotExpression(condExp:CondExpression<any,any>): condExp is NotExpress
 }
 
 
+/**
+ * 映射条件类型
+ */
+type MapCondition = string | number | (String & NotExpression) | (Number & NotExpression) | symbol 
+
+function isMapCondition(condExp:any):  condExp is  MapCondition {
+  let condType = typeof condExp
+  return condType === "string" || condType === "number" || condType === "symbol" || condExp instanceof String || condExp instanceof Number
+}
 
 
 
@@ -40,7 +51,7 @@ function isNotExpression(condExp:CondExpression<any,any>): condExp is NotExpress
  * 布尔条件
  * 代表那些可直接被当作布尔值来计算的 真假 和 假值；
  */
-type BoolCondition = boolean | number | string | symbol | undefined | null
+type BoolCondition = boolean | undefined | null | Boolean
 
 
 
@@ -48,8 +59,8 @@ type BoolCondition = boolean | number | string | symbol | undefined | null
  * BoolCondition 的类型守卫
  * @param condExp : CondExpression 表达式
  */
-function isBoolCondition(condExp:CondExpression<any,any>): condExp is BoolCondition {
-  return !isObject(condExp)
+function isBoolCondition(condExp:any): condExp is BoolCondition {
+  return typeof condExp === "boolean" || condExp == undefined || condExp instanceof Boolean
 }
 
 
@@ -65,7 +76,7 @@ interface PromCondition<ThisValue,Args> extends Promise<CondExpression<ThisValue
  * PromCondition 的类型守卫
  * @param condExp : CondExpression 表达式
  */
-function isPromCondition<ThisValue,Args>(condExp:CondExpression<ThisValue,Args>): condExp is PromCondition<ThisValue,Args> {
+function isPromCondition<ThisValue,Args>(condExp:any): condExp is PromCondition<ThisValue,Args> {
   return condExp instanceof Promise
 }
 
@@ -80,11 +91,20 @@ interface FunCondition<ThisValue,Args> extends NotExpression {
 }
 
 
+
+interface ObjCondition extends NotExpression{}
+
+function isObjCondition(cond:any): cond is ObjCondition {
+  return cond && cond instanceof Object && !(isConditionSet(cond) || isFunCondition(cond) || isPromCondition(cond))
+}
+
+
+
 /**
  * FunCondition 的类型守卫
  * @param condExp : CondExpression 表达式
  */
-function isFunCondition<ThisValue,Args>(condExp:CondExpression<ThisValue,Args>): condExp is FunCondition<ThisValue,Args> {
+function isFunCondition<ThisValue,Args>(condExp:any): condExp is FunCondition<ThisValue,Args> {
   return typeof condExp === "function"
 }
 
@@ -95,8 +115,14 @@ function isFunCondition<ThisValue,Args>(condExp:CondExpression<ThisValue,Args>):
  * 条件的类型
  * 条件是用来表达 真 或 假 的基本运算单元；
  */
-type Condition<ThisValue,Args> = BoolCondition | FunCondition<ThisValue,Args> | PromCondition<ThisValue,Args> | NotExpression
+type Condition<ThisValue,Args> = BoolCondition | FunCondition<ThisValue,Args> | PromCondition<ThisValue,Args> | MapCondition | ObjCondition
 
+function isCondition<ThisValue,Args>(cond:any): cond is Condition<ThisValue,Args> {
+  return isBoolCondition(cond) || isFunCondition<ThisValue,Args>(cond) || isPromCondition<ThisValue,Args>(cond) || isMapCondition(cond) || isObjCondition(cond)
+}
+
+
+// dele：删除 BaseCondition
 /**
  * 基础条件的类型；
  * 该类型的条件不需要经过复杂的运算，可根据 not 属性(如果有)，直接将其自身的值作为布尔值来来运算
@@ -118,7 +144,7 @@ type OperatedResult = boolean | Promise<boolean>
  * 条件集
  * 条件集 ConditionSet 是用来表达 多个条件表达式 相与 或者 相或 关系的一种表达式；它包含多个条件表达式，并携带有关系信息（与、或）；
  */
-interface ConditionSet<ThisValue,Args>  extends Array<CondExpression<ThisValue,Args>>,NotExpression{
+interface ConditionSet<ThisValue,Args>  extends Array<CondExpression<ThisValue,Args>>,NotExpression {
   /**
    * 各个条件表达式之间的关系；
    * 默认值："and"
@@ -131,7 +157,7 @@ interface ConditionSet<ThisValue,Args>  extends Array<CondExpression<ThisValue,A
  * ConditionSet 的类型守卫
  * @param condExp : CondExpression 表达式
  */
-function isConditionSet<ThisValue,Args>(condExp:CondExpression<ThisValue,Args>): condExp is ConditionSet<ThisValue,Args> {
+function isConditionSet<ThisValue,Args>(condExp:any): condExp is ConditionSet<ThisValue,Args> {
   return Array.isArray(condExp)
 }
 
@@ -143,6 +169,12 @@ function isConditionSet<ThisValue,Args>(condExp:CondExpression<ThisValue,Args>):
  * 条件集 ConditionSet 和 条件 Condition 统称为 条件表达式
  */
 type CondExpression<ThisValue,Args> = ConditionSet<ThisValue,Args> | Condition<ThisValue,Args>
+
+
+
+function isCondExpression<ThisValue,Args>(condExp:any): condExp is CondExpression<ThisValue,Args> {
+  return isConditionSet<ThisValue,Args>(condExp) || isCondition<ThisValue,Args>(condExp)
+}
 
 
 
@@ -170,14 +202,14 @@ type NotSequence = NotValue[]
  * @return boolean     非操作后的结果
  */
 function notOperat(target:any,notSequ:NotSequence):boolean {
-  return !!(notSequ.reduce(function (res,not) {
-    return not ? !res : res;
-  },target))
+  return notSequ.reduce(function (res,not) {
+    return not && not.valueof() ? !res : res;
+  },Boolean(target && target.valueof()))
 }
 
 
 
-
+// dele：由flatCondition代替
 /**
  * 扁平化 函数条件
  * @param condExp : CondExpression   条件表达式；如果 condExp 不是函数条件，则不作处理 返回 condExp 自身
@@ -205,6 +237,45 @@ function flatFunCondition<ThisValue,Args>(condExp: CondExpression<ThisValue,Args
 }
 
 
+
+function flatCondition<ThisValue,Args>(operatOptions:OperatOptions<ThisValue,Args>): {expr:Exclude<CondExpression<ThisValue,Args>, MapCondition,FunCondition<ThisValue,Args>>,notSequ:NotSequence} {
+
+  let {expr,"this":thisValue,args,notSequ,...condMap} = operatOptions;
+
+  if (!notSequ){
+    notSequ = isNotExpression(expr) ? [expr.not] : [];
+  }
+
+  switch(true){
+    case isMapCondition(expr):{
+      var nextExpr = condMap[expr];
+      break;
+    }
+
+    case isFunCondition(expr):{
+      nextExpr = expr.apply(thisValue,args)
+      break;
+    }
+
+    default:{
+      return {
+        expr:expr,
+        notSequ:notSequ
+      };
+    }
+
+  }
+
+  let nextOperOpts = {...operatOptions,expr:nextExpr,notSequ:undefined};
+  
+  var exprOpts = flatCondition(nextOperOpts);
+  exprOpts.notSequ = notSequ.concat(exprOpts.notSequ)
+
+  return exprOpts;
+}
+
+
+
 /**
  * 判断目标是否是对象类型
  * @param target : any   目标对象
@@ -216,14 +287,15 @@ function flatFunCondition<ThisValue,Args>(condExp: CondExpression<ThisValue,Args
  */
 function isObject(target:any):boolean {
 // return target instanceof Object || typeof target === "object"
-return  target && typeof target === "object"
+var tarType = typeof target;
+return  target && (tarType === "object" || tarType === "function");
 }
 
 
 
 interface conditionOperat<ThisValue,Args> {
   create(expr:CondExpression<ThisValue,Args>): (thisValue?:any, args?:any[])=>OperatedResult;
-  create(options:ConditionOptions<ThisValue,Args>): (...rest: any[])=>OperatedResult;
+  create(options:ExpressionOptions<ThisValue,Args>): (...rest: any[])=>OperatedResult;
 }
 
 
@@ -257,31 +329,47 @@ interface conditionOperat<ThisValue,Args> {
  *    2. ConditionSet : 条件集；
  *    3. PromCondition : 异步条件；
  */
-export function conditionOperat<ThisValue,Args>(...exprOptions:ExpressionOptions<ThisValue,Args>[]):OperatedResult;
-export function conditionOperat<ThisValue,Args>(condExpress:CondExpression<ThisValue,Args>,...exprOptions:ExpressionOptions<ThisValue,Args>[]):OperatedResult;
-export function conditionOperat<ThisValue,Args>(exprOrOptions:CondExpression<ThisValue,Args>|ExpressionOptions<ThisValue,Args>,...exprOptions:ExpressionOptions<ThisValue,Args>[]):OperatedResult {
-
+export function conditionOperat<ThisValue,Args>(...operatOptions:OperatOptions<ThisValue,Args>[]):OperatedResult;
+export function conditionOperat<ThisValue,Args>(condExpress:CondExpression<ThisValue,Args>,...operatOptions:OperatOptions<ThisValue,Args>[]):OperatedResult;
+export function conditionOperat<ThisValue,Args>(exprOrOptions:CondExpression<ThisValue,Args>|OperatOptions<ThisValue,Args>,...operatOptions:OperatOptions<ThisValue,Args>[]):OperatedResult {
   
-  if (isExpressionOptions<ThisValue,Args>(exprOrOptions)){
-    var firstExprOpts = exprOrOptions;
-  }else {
-    firstExprOpts = {expr:exprOrOptions};
+  let finalOperOpts = Object.assign({},exprOrOptions,...operatOptions);
+
+  if (operatOptions.length == 0 || !("expr" in finalOperOpts) || !isOperatOptions(exprOrOptions)){
+    finalOperOpts.expr = exprOrOptions;
   }
 
-  var finalExprOptions = Object.assign({},firstExprOpts,...exprOptions);
+  let {"this":thisValue,args,...condMap} = finalOperOpts;
+
+  let {expr:condExpress,notSequ} = flatCondition(finalOperOpts);
 
 
-  if (isBoolCondition(condExpress)){
-    return !!condExpress
+
+  switch(true){
+    
+    case isPromCondition<ThisValue,Args>(condExpress):{
+      return condExpress.then(function(expr){
+        finalOperOpts.expr = expr;
+        finalOperOpts.notSequ = notSequ;
+        return conditionOperat(finalOperOpts);
+      },function(reason){
+        return notOperat(false,notSequ);
+      });
+    }
+
+    case isConditionSet(condExpress):{
+      var condSet:ConditionSet<ThisValue,Args> = condExpress as ConditionSet<ThisValue,Args>
+      break;
+    }
+
+    // 包含 BoolCondition 和 ObjCondition
+    default:{
+      return notOperat(condExpress,notSequ);
+    }
+
   }
 
-  if (isConditionSet(condExpress)){
-    var condSet:ConditionSet<ThisValue,Args> = condExpress as ConditionSet<ThisValue,Args>
-  }else {
-    condSet = [condExpress]
-  }
 
-  let notSequ = [condSet.not];
   let notOper = function(b:boolean){
     return notOperat(b,notSequ)
   };
@@ -291,29 +379,34 @@ export function conditionOperat<ThisValue,Args>(exprOrOptions:CondExpression<Thi
 
   if (condSet.rel === "or"){
 
-    //先对计算 不是 数组 和 不是 Promise 的 条件进行计算
+    //先计算 不是 数组 和 不是 Promise 的 条件进行计算
     let orRes = condSet.some(function (condExp) {
 
-      condExp = flatFunCondition(condExp,thisValue,args)
+      let operOpts = {...finalOperOpts,expr:condExp,notSequ:undefined};
 
-      if (isBoolCondition(condExp)){
-        return condExp as boolean
+      let {expr:finalExpr,notSequ} = flatCondition(operOpts);
+
+
+      switch(true){
+
+        case isConditionSet(finalExpr):{
+          condSetArr.push(finalExpr)
+          return false
+        }
+
+        case isPromCondition<ThisValue,Args>(finalExpr):{
+          proCondArr.push(finalExpr)
+          return false
+        }
+    
+
+        // 包含 BoolCondition 和 ObjCondition
+        default:{
+          return notOperat(finalExpr,notSequ);
+        }
+    
       }
 
-      //先跳过数组类型
-      if (isConditionSet(condExp)){
-        condSetArr.push(condExp)
-        return false
-      }
-
-
-      //先跳过 Promise 类型
-      if (isPromCondition(condExp)){
-        proCondArr.push(condExp)
-        return false
-      }
-
-      return notOperat(condExp,[condExp.not])
     });
 
     if (orRes){
@@ -323,7 +416,8 @@ export function conditionOperat<ThisValue,Args>(exprOrOptions:CondExpression<Thi
   //  专门 计算 数组条件的 运算结果
   if (condSetArr.length > 0){
     let condSetArrRes = condSetArr.some(function (condSet) {
-      let cond = conditionOperat(condSet);
+      let operOpts = {...finalOperOpts,expr:condSet,notSequ:undefined};
+      let cond = conditionOperat(operOpts);
 
       //先跳过 Promise 类型
       if (isPromCondition(cond)){
@@ -331,7 +425,7 @@ export function conditionOperat<ThisValue,Args>(exprOrOptions:CondExpression<Thi
         return false
       }
 
-      return cond as boolean
+      return cond;
     });
     if (condSetArrRes) {
       return notOper(true)
@@ -340,7 +434,6 @@ export function conditionOperat<ThisValue,Args>(exprOrOptions:CondExpression<Thi
 
     //  专门 计算 Promise 条件的 运算结果
   if (proCondArr.length > 0){
-    // @ts-ignore
     return  Promise.allSettled(proCondArr).then(function (proCondArrResArr:{status:"fulfilled"|"rejected",value:CondExpression<ThisValue,Args>}[]) {
       let proCondResArr:ConditionSet<ThisValue,Args> =  proCondArrResArr.map(function (proRes) {
         if (proRes.status === "fulfilled"){
@@ -351,8 +444,8 @@ export function conditionOperat<ThisValue,Args>(exprOrOptions:CondExpression<Thi
       });
 
       proCondResArr.rel = condSet.rel;
-      proCondResArr.not = condSet.not;
-      return conditionOperat(proCondResArr);
+      let operOpts = {...finalOperOpts,expr:proCondResArr,notSequ};
+      return conditionOperat(operOpts);
     });
 
   }
@@ -366,28 +459,33 @@ export function conditionOperat<ThisValue,Args>(exprOrOptions:CondExpression<Thi
 
 
 
-    //先对计算 不是 数组 和 不是 Promise 的 条件进行计算
+    //先计算 不是 数组 和 不是 Promise 的 条件进行计算
     let andRes = condSet.every(function (condExp) {
-      condExp = flatFunCondition(condExp,thisValue,args)
 
-      if (isBoolCondition(condExp)){
-        return condExp as boolean
+      let operOpts = {...finalOperOpts,expr:condExp,notSequ:undefined};
+
+      let {expr:finalExpr,notSequ} = flatCondition(operOpts);
+
+
+      switch(true){
+
+        case isConditionSet(finalExpr):{
+          condSetArr.push(finalExpr)
+          return true
+        }
+
+        case isPromCondition<ThisValue,Args>(finalExpr):{
+          proCondArr.push(finalExpr)
+          return true
+        }
+    
+
+        default:{
+          return notOperat(finalExpr,notSequ);
+        }
+    
       }
 
-      //先跳过数组类型
-      if (isConditionSet(condExp)){
-        condSetArr.push(condExp)
-        return true
-      }
-
-
-      //先跳过 Promise 类型
-      if (isPromCondition(condExp)){
-        proCondArr.push(condExp)
-        return true
-      }
-
-      return notOperat(condExp,[condExp.not])
     });
 
     if (!andRes){
@@ -397,7 +495,9 @@ export function conditionOperat<ThisValue,Args>(exprOrOptions:CondExpression<Thi
     //  专门 计算 数组条件的 运算结果
     if (condSetArr.length > 0){
       let condSetArrRes = condSetArr.every(function (condSet) {
-        let cond = conditionOperat(condSet);
+        let operOpts = {...finalOperOpts,expr:condSet,notSequ:undefined};
+        let cond = conditionOperat(operOpts);
+
 
         //先跳过 Promise 类型
         if (isPromCondition(cond)){
@@ -405,7 +505,7 @@ export function conditionOperat<ThisValue,Args>(exprOrOptions:CondExpression<Thi
           return true
         }
 
-        return cond as boolean
+        return cond
       });
       if (!condSetArrRes) {
         return notOper(false)
@@ -414,7 +514,6 @@ export function conditionOperat<ThisValue,Args>(exprOrOptions:CondExpression<Thi
 
     //  专门 计算 Promise 条件的 运算结果
     if (proCondArr.length > 0){
-      // @ts-ignore
       return  Promise.allSettled(proCondArr).then(function (proCondArrResArr:{status:"fulfilled"|"rejected",value:CondExpression<ThisValue,Args>}[]) {
         let proCondResArr:ConditionSet<ThisValue,Args> =  proCondArrResArr.map(function (proRes) {
           if (proRes.status === "fulfilled"){
@@ -425,8 +524,9 @@ export function conditionOperat<ThisValue,Args>(exprOrOptions:CondExpression<Thi
         });
 
         proCondResArr.rel = condSet.rel;
-        proCondResArr.not = condSet.not;
-        return conditionOperat(proCondResArr);
+
+        let operOpts = {...finalOperOpts,expr:proCondResArr,notSequ};
+        return conditionOperat(operOpts);
       });
 
     }
@@ -466,14 +566,20 @@ export function conditionOperat<ThisValue,Args>(condExpress:CondExpression<ThisV
 /**
  * 条件选项类型
  */
-interface ConditionOptions<ThisValue,Args> {
+interface ExpressionOptions<ThisValue,Args> {
   expr?:CondExpression<ThisValue,Args>,   //条件表达式
   this?:ThisValue,    //设置条件表达式中 函数条件 的 this 的值
-  args?:Args    //设置条件表达式中 函数条件 的 参数序列；即该参数是个数组，里面包含传递给 条件函数 的参数
+  args?:Args,    //设置条件表达式中 函数条件 的 参数序列；即该参数是个数组，里面包含传递给 条件函数 的参数
+
+  /* 
+  非值的序列
+  如果存在该属性值，则忽略 expr 属性的 表达式的 not 属性
+  */
+ notSequ?:NotSequence
 }
 
-function isConditionOptions<ThisValue,Args>(opts:any): opts is ConditionOptions<ThisValue,Args> {
-  return opts && (opts.expr || opts.this || opts.args)
+function isExpressionOptions<ThisValue,Args>(opts:any): opts is ExpressionOptions<ThisValue,Args> {
+  return opts && (opts.expr || opts.this || opts.args || opts.notSequ)
 }
 
 
@@ -484,23 +590,27 @@ function isConditionOptions<ThisValue,Args>(opts:any): opts is ConditionOptions<
 /* type ConditionMap<ThisValue, Args> = {
   [key in string | number | symbol]: CondExpression<ThisValue, Args>
 } */
+
+
+
 interface ConditionMap<ThisValue, Args>  {
-  [prop : string]: CondExpression<ThisValue, Args>;
+  [prop : MapCondition]: CondExpression<ThisValue, Args>;
 }
 
 
 function isConditionMap<ThisValue,Args>(opts:any): opts is ConditionMap<ThisValue,Args> {
-  return opts && typeof opts === "object" && !Array.isArray(opts)
+  return isObject(opts)
 }
 
 
-/**
- * 条件选项类型
- */
-type ExpressionOptions<ThisValue,Args> = ConditionOptions<ThisValue,Args> & ConditionMap<ThisValue, Args> 
 
-function isExpressionOptions<ThisValue,Args>(opts:any): opts is ExpressionOptions<ThisValue,Args> {
-  return isConditionOptions<ThisValue,Args>(opts) || isConditionMap<ThisValue,Args>(opts)
+/**
+ * 运算选项类型
+ */
+type OperatOptions<ThisValue,Args> = ExpressionOptions<ThisValue,Args> & ConditionMap<ThisValue, Args> 
+
+function isOperatOptions<ThisValue,Args>(opts:any): opts is OperatOptions<ThisValue,Args> {
+  return isConditionMap<ThisValue,Args>(opts) || isExpressionOptions<ThisValue,Args>(opts)
 }
 
 
@@ -526,16 +636,16 @@ function isExpressionOptions<ThisValue,Args>(opts:any): opts is ExpressionOption
 export function create<ThisValue,Args>(expr:CondExpression<ThisValue,Args>): (thisValue?:ThisValue, args?:Args)=>OperatedResult;
 
 /**
- * create(options:ConditionOptions<any,any>): (...rest: any[])=>OperatedResult
+ * create(options:ExpressionOptions<any,any>): (...rest: any[])=>OperatedResult
  * 
- * @param options:ConditionOptions<any,any>   创建选项对象
+ * @param options:ExpressionOptions<any,any>   创建选项对象
  * @return `(...rest: any[])=>OperatedResult`  返回一个函数，该函数可接收 选项对象 options 中没有提供的剩余参数，剩余的参数按照 `expr、this、args` 顺序（即 条件运算函数 `conditionOperat()` 的参数顺序）进行排列；
  * 
  */
-export function create(options:ConditionOptions<any,any>): (...rest: any[])=>OperatedResult;
-export function create<ThisValue,Args>(exprOrOpts: CondExpression<ThisValue,Args>|ConditionOptions<ThisValue,Args>){
+export function create(options:ExpressionOptions<any,any>): (...rest: any[])=>OperatedResult;
+export function create<ThisValue,Args>(exprOrOpts: CondExpression<ThisValue,Args>|ExpressionOptions<ThisValue,Args>){
 
-  if (isConditionOptions(exprOrOpts)){
+  if (isExpressionOptions(exprOrOpts)){
     var {expr,"this":thisValue,args} = exprOrOpts
   }else {
     expr = exprOrOpts
