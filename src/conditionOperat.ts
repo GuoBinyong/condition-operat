@@ -370,7 +370,7 @@ export function conditionOperat<ThisValue,Args>(exprOrOptions:CondExpression<Thi
   }
 
 
-  let notOper = function(b:boolean){
+  let notOper = function(b:any){
     return notOperat(b,notSequ)
   };
 
@@ -527,6 +527,343 @@ export function conditionOperat<ThisValue,Args>(exprOrOptions:CondExpression<Thi
 
         let operOpts = {...finalOperOpts,expr:proCondResArr,notSequ};
         return conditionOperat(operOpts);
+      });
+
+    }
+
+    return notOper(andRes);
+
+
+
+  }
+
+
+
+
+}
+
+
+function conditionOperatForFast<ThisValue,Args>(operatOptions:OperatOptions<ThisValue,Args>):OperatedResult {
+  
+  let finalOperOpts = {...operatOptions};
+
+  let {"this":thisValue,args,...condMap} = finalOperOpts;
+
+  let {expr:condExpress,notSequ} = flatCondition(finalOperOpts);
+
+
+
+  switch(true){
+    
+    case isPromCondition<ThisValue,Args>(condExpress):{
+      return condExpress.then(function(expr){
+        finalOperOpts.expr = expr;
+        finalOperOpts.notSequ = notSequ;
+        return conditionOperat(finalOperOpts);
+      },function(reason){
+        return notOperat(false,notSequ);
+      });
+    }
+
+    case isConditionSet(condExpress):{
+      var condSet:ConditionSet<ThisValue,Args> = condExpress as ConditionSet<ThisValue,Args>
+      break;
+    }
+
+    // 包含 BoolCondition 和 ObjCondition
+    default:{
+      return notOperat(condExpress,notSequ);
+    }
+
+  }
+
+
+  let notOper = function(b:any){
+    return notOperat(b,notSequ)
+  };
+
+  let proCondArr:PromCondition<ThisValue,Args>[] = []
+  let condSetArr:ConditionSet<ThisValue,Args> = []
+
+  if (condSet.rel === "or"){
+
+    //先计算 不是 数组 和 不是 Promise 的 条件进行计算
+    let orRes = condSet.some(function (condExp) {
+
+      let operOpts = {...finalOperOpts,expr:condExp,notSequ:undefined};
+
+      let {expr:finalExpr,notSequ} = flatCondition(operOpts);
+
+
+      switch(true){
+
+        case isConditionSet(finalExpr):{
+          condSetArr.push(finalExpr)
+          return false
+        }
+
+        case isPromCondition<ThisValue,Args>(finalExpr):{
+          proCondArr.push(finalExpr)
+          return false
+        }
+    
+
+        // 包含 BoolCondition 和 ObjCondition
+        default:{
+          return notOperat(finalExpr,notSequ);
+        }
+    
+      }
+
+    });
+
+    if (orRes){
+      return notOper(true)
+    }
+
+  //  专门 计算 数组条件的 运算结果
+  if (condSetArr.length > 0){
+    let condSetArrRes = condSetArr.some(function (condSet) {
+      let operOpts = {...finalOperOpts,expr:condSet,notSequ:undefined};
+      let cond = conditionOperat(operOpts);
+
+      //先跳过 Promise 类型
+      if (isPromCondition(cond)){
+        proCondArr.push(cond)
+        return false
+      }
+
+      return cond;
+    });
+    if (condSetArrRes) {
+      return notOper(true)
+    }
+  }
+
+    //  专门 计算 Promise 条件的 运算结果
+  if (proCondArr.length > 0){
+    return  Promise.allSettled(proCondArr).then(function (proCondArrResArr:{status:"fulfilled"|"rejected",value:CondExpression<ThisValue,Args>}[]) {
+      let proCondResArr:ConditionSet<ThisValue,Args> =  proCondArrResArr.map(function (proRes) {
+        if (proRes.status === "fulfilled"){
+          return proRes.value
+        }else {
+          return false
+        }
+      });
+
+      proCondResArr.rel = condSet.rel;
+      let operOpts = {...finalOperOpts,expr:proCondResArr,notSequ};
+      return conditionOperat(operOpts);
+    });
+
+  }
+
+  return notOper(orRes) ;
+
+
+
+
+  }else {
+
+
+
+    //先计算 不是 数组 和 不是 Promise 的 条件进行计算
+    let andRes = condSet.every(function (condExp) {
+
+      let operOpts = {...finalOperOpts,expr:condExp,notSequ:undefined};
+
+      let {expr:finalExpr,notSequ} = flatCondition(operOpts);
+
+
+      switch(true){
+
+        case isConditionSet(finalExpr):{
+          condSetArr.push(finalExpr)
+          return true
+        }
+
+        case isPromCondition<ThisValue,Args>(finalExpr):{
+          proCondArr.push(finalExpr)
+          return true
+        }
+    
+
+        default:{
+          return notOperat(finalExpr,notSequ);
+        }
+    
+      }
+
+    });
+
+    if (!andRes){
+      return notOper(false)
+    }
+
+    //  专门 计算 数组条件的 运算结果
+    if (condSetArr.length > 0){
+      let condSetArrRes = condSetArr.every(function (condSet) {
+        let operOpts = {...finalOperOpts,expr:condSet,notSequ:undefined};
+        let cond = conditionOperat(operOpts);
+
+
+        //先跳过 Promise 类型
+        if (isPromCondition(cond)){
+          proCondArr.push(cond)
+          return true
+        }
+
+        return cond
+      });
+      if (!condSetArrRes) {
+        return notOper(false)
+      }
+    }
+
+    //  专门 计算 Promise 条件的 运算结果
+    if (proCondArr.length > 0){
+      return  Promise.allSettled(proCondArr).then(function (proCondArrResArr:{status:"fulfilled"|"rejected",value:CondExpression<ThisValue,Args>}[]) {
+        let proCondResArr:ConditionSet<ThisValue,Args> =  proCondArrResArr.map(function (proRes) {
+          if (proRes.status === "fulfilled"){
+            return proRes.value
+          }else {
+            return false
+          }
+        });
+
+        proCondResArr.rel = condSet.rel;
+
+        let operOpts = {...finalOperOpts,expr:proCondResArr,notSequ};
+        return conditionOperat(operOpts);
+      });
+
+    }
+
+    return notOper(andRes);
+
+
+
+  }
+
+
+
+
+}
+
+
+
+
+function conditionOperatForFull<ThisValue,Args>(operatOptions:OperatOptions<ThisValue,Args>):OperatedResult {
+  
+  let finalOperOpts = {...operatOptions};
+
+  let {"this":thisValue,args,...condMap} = finalOperOpts;
+
+  let {expr:condExpress,notSequ} = flatCondition(finalOperOpts);
+
+
+
+  switch(true){
+    
+    case isPromCondition<ThisValue,Args>(condExpress):{
+      return condExpress.then(function(expr){
+        finalOperOpts.expr = expr;
+        finalOperOpts.notSequ = notSequ;
+        return conditionOperatForFull(finalOperOpts);
+      },function(reason){
+        return notOperat(false,notSequ);
+      });
+    }
+
+    case isConditionSet(condExpress):{
+      var condSet:ConditionSet<ThisValue,Args> = condExpress as ConditionSet<ThisValue,Args>
+      var condSetRes = condSet.map(function (condExp) {
+        let operOpts = {...finalOperOpts,expr:condExp,notSequ:undefined};
+        return conditionOperatForFull(operOpts);
+      });
+      break;
+    }
+
+    // 包含 BoolCondition 和 ObjCondition
+    default:{
+      return notOperat(condExpress,notSequ);
+    }
+
+  }
+
+
+  let notOper = function(b:any){
+    return notOperat(b,notSequ)
+  };
+
+  let proCondArr:PromCondition<ThisValue,Args>[] = []
+  let condSetArr:ConditionSet<ThisValue,Args> = []
+
+  if (condSet.rel === "or"){
+
+    //通过 不是 Promise 的 结果来确定 condSet 的值
+    let orRes = condSetRes.some(function (condExp) {
+
+      if (condExp instanceof Promise){
+        proCondArr.push(condExp)
+        return false
+      }
+
+      return condExp;
+    });
+
+    if (orRes){
+      return notOper(true)
+    }
+
+  //通过 Promise 的 结果来确定 condSet 的值
+  if (proCondArr.length > 0){
+    return  Promise.allSettled(proCondArr).then(function (proCondArrResArr:{status:"fulfilled"|"rejected",value:CondExpression<ThisValue,Args>}[]) {
+      let proCondResArr:ConditionSet<ThisValue,Args> =  proCondArrResArr.map(function (proRes) {
+        return proRes.value
+      });
+
+      proCondResArr.rel = condSet.rel;
+      let operOpts = {...finalOperOpts,expr:proCondResArr,notSequ};
+      return conditionOperatForFull(operOpts);
+    });
+
+  }
+
+  return notOper(orRes) ;
+
+
+
+
+  }else {
+
+
+
+    //通过 不是 Promise 的 结果来确定 condSet 的值
+    let andRes = condSetRes.every(function (condExp) {
+      if (condExp instanceof Promise){
+        proCondArr.push(condExp)
+        return true
+      }
+
+      return condExp;
+    });
+
+    if (!andRes){
+      return notOper(false)
+    }
+
+    //通过 Promise 的 结果来确定 condSet 的值
+    if (proCondArr.length > 0){
+      return  Promise.allSettled(proCondArr).then(function (proCondArrResArr:{status:"fulfilled"|"rejected",value:CondExpression<ThisValue,Args>}[]) {
+        let proCondResArr:ConditionSet<ThisValue,Args> =  proCondArrResArr.map(function (proRes) {
+          return proRes.value
+        });
+
+        proCondResArr.rel = condSet.rel;
+
+        let operOpts = {...finalOperOpts,expr:proCondResArr,notSequ};
+        return conditionOperatForFull(operOpts);
       });
 
     }
