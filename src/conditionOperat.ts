@@ -356,13 +356,6 @@ function isExpressionOptions<ThisValue,Args>(opts:any): opts is ExpressionOption
 
 
 
-/**
- * 条件映射类型；条件Map
- */
-/* type ConditionMap<ThisValue, Args> = {
-  [key in string | number | symbol]: CondExpression<ThisValue, Args>
-} */
-
 
 /**
  * 条件映射对象的类型
