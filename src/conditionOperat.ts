@@ -788,6 +788,8 @@ function conditionOperatForFull<ThisValue,Args>(operatOptions:OperatOptions<This
 /**
  * 创建快捷运算函数
  * 快捷运算函数 是带有默认选项的条件运算函数；
+ *
+ * @returns  (...operatOptions:OperatOptions<ThisValue,Args>[])=>OperatedResult   返回一个将之前传入的选项作为默认选项，并可接收一系列条件的选项对象的 条件运算函数 conditionOperat(...operatOptions:OperatOptions<ThisValue,Args>[]):OperatedResult
  */
 
   /**
