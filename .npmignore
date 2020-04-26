@@ -1,14 +1,19 @@
-#忽略配置文件
-build/
-project-config.js
-webpack.config.js
+# npm 上传包时的忽略配置文件
+# https://github.com/GuoBinyong/library-webpack-template
+
+# 构建配置相关
 tsconfig.json
 .postcssrc.js
 .eslintrc.js
 .eslintignore
 .editorconfig
+.travis.yml
+rollup.config.js
 
-#WebStorm生成的用来存放项目配置的目录
+
+
+
+# WebStorm生成的用来存放项目配置的目录
 .idea
 
 # VSCode在项目中创建的隐藏目录
@@ -16,3 +21,7 @@ tsconfig.json
 
 #Mac系统中用来存储文件夹的显示属性的文件
 .DS_Store
+
+
+# 代码目录
+test/
