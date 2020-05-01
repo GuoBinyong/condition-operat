@@ -32,7 +32,7 @@ export default [
 	{
 		input: 'src/index.ts',
 		output: {
-			name: pkg.name.toHumpFormat(),  //驼峰格式的 pkg.name
+			name: "co",  //驼峰格式的 pkg.name
 			file: pkg.browser,
 			format: 'umd'
 		},
