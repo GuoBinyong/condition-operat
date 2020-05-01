@@ -1,6 +1,6 @@
 {
   "name": "condition-operat",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "condition-operat 可以对一系列复杂的条件进行逻辑运算，条件可以是基本类型的数据，也可以是个函数，甚至可以是个异步条件，即 Promise；或者是个条件集，条件集也可以再嵌套条件集；可以指定条件之间的逻辑关系，如：与、或、非",
   "main": "dist/condition-operat.cjs.js",
   "module": "dist/condition-operat.esm.js",
