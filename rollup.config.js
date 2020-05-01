@@ -1,62 +1,63 @@
+import "es-expand"
 import resolve from '@rollup/plugin-node-resolve';
 import commonjs from '@rollup/plugin-commonjs';
 import typescript from 'rollup-plugin-typescript2';
 import pkg from './package.json';
 
+
 /**
- * the string separated by the specified separator is converted to hump format
- * 把字符串从分隔线格式转换成驼峰格式
- *
- * @param  str : string    Converted string 被转换的字符串
- * @param separators ?: string | Array<string>   optional; default: ["-","_"] ; separator or separator good array ["-","_"]； 可选；默认值：["-","_"] ；分隔符，或 包含多个分隔符的数组
- * @returns string  return hump format string  返回驼峰格式的字符串
+ * 获取 package.json 中配置的 description、optionalDependencies、peerDependencies 中的所有依赖的名字列表
+ * Get an array of dependent names in the configuration of description, optional Dependencies, peer Dependencies configured in package.json
+ * @param {*} package  package.json 中的配置对象； Configuration objects in package.json
+ * @returns Array<string>  返回包含 description、optionalDependencies、peerDependencies 中所有依赖名字的数组； Returns an array of all name-dependent names in the description, option, peer Dependencies
  */
-function toHumpFormat(str, separators) {
-	if (separators == undefined) {
-		separators = ['-', '_'];
-	} else if (!Array.isArray(separators)) {
-		separators = [separators]
-	}
-	var separatorRexStr = '(' + separators.join('|') + ')' + '+([A-Za-z]?)'
-	var separatorRex = new RegExp(separatorRexStr, 'g');
-	return str.replace(separatorRex, function (match, p1, p2) {
-		return p2.toUpperCase();
-	});
+function getDependencieNames(packageConf){
+	return Object.keys(Object.assign({},packageConf.dependencies,packageConf.optionalDependencies,packageConf.peerDependencies))
 }
   
-  
+
+/* 
+注意：
+- rollup 默认翻用的不是 node 的模块解析算法，所以，rollup 找不到由 npm 安装的依赖（模块），所以 由 npm 安装的依赖也不被被要想构建进最终的输出包中；这样也起到了排除 node_modules 中模块的效果；排除模块的功能 由 external 选项指定
+- @rollup/plugin-node-resolve 插件可让 rollup 用 node 的模块解析算法来查找模块；
+*/
 
 export default [
-	// browser-friendly UMD build
+	/* 
+	浏览器友好的 UMD 构建
+	特点：
+	   - 将所有依赖都构建在了一起
+	   - 可在不支持 js模块方案 的环境下运行，也可以作为 js模块 被导入
+	*/
 	{
 		input: 'src/index.ts',
 		output: {
-			name: toHumpFormat(pkg.name),
+			name: pkg.name.toHumpFormat(),  //驼峰格式的 pkg.name
 			file: pkg.browser,
 			format: 'umd'
 		},
 		plugins: [
-			resolve(), // so Rollup can find `ms`
-			commonjs(),  // so Rollup can convert `ms` to an ES module
-			typescript() // so Rollup can convert TypeScript to JavaScript
+			resolve(), // 使用node解析算法查找模块
+			commonjs(), // 将依赖的模块从 CommonJS 模块规范转换成 ES2015 模块规范
+			typescript() // 将 TypeScript 转换为 JavaScript
 		]
 	},
 
-	// CommonJS (for Node) and ES module (for bundlers) build.
-	// (We could have three entries in the configuration array
-	// instead of two, but it's quicker to generate multiple
-	// builds from a single configuration where possible, using
-	// an array for the `output` option, where we can specify
-	// `file` and `format` for each target)
+	/* 
+	模块友好的构建
+	特点：
+	   - 移除了 node_modules 中的所有依赖
+	   - 仅支持以 js模块 的方式被导入
+	*/
 	{
 		input: 'src/index.ts',
-		external: ['ms'],
-		plugins: [
-			typescript() // so Rollup can convert TypeScript to JavaScript
-		],
+		external: getDependencieNames(pkg),  //移除 package.json 中所有的依赖包
 		output: [
-			{ file: pkg.main, format: 'cjs' },
-			{ file: pkg.module, format: 'es' }
+			{ file: pkg.main, format: 'cjs' }, // CommonJS (用于 Node)
+			{ file: pkg.module, format: 'es' }  // ES module （用于打包工具（如：webpack等）
+		],
+		plugins: [
+			typescript() // 将 TypeScript 转换为 JavaScript
 		]
 	}
 ];
