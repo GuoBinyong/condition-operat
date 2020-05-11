@@ -811,10 +811,11 @@ export function create<ThisValue,Args>(...operatOptions:OperatOptions<ThisValue,
 export function create<ThisValue,Args>(condExpress:CondExpression<ThisValue,Args>,...operatOptions:OperatOptions<ThisValue,Args>[]): (...operatOptions:OperatOptions<ThisValue,Args>[])=>OperatedResult;
 export function create<ThisValue,Args>(exprOrOptions:CondExpression<ThisValue,Args>|OperatOptions<ThisValue,Args>,...operatOptions:OperatOptions<ThisValue,Args>[]){
 
+  var finalOperOpts = Object.assign({},...operatOptions);
 
-  var finalOperOpts = Object.assign({},exprOrOptions,...operatOptions);
-
-  if (!isOperatOptions(exprOrOptions)){
+  if (isOperatOptions(exprOrOptions)){
+    finalOperOpts = Object.assign({},exprOrOptions,finalOperOpts);
+  }else {
     finalOperOpts.expr = exprOrOptions;
   }
 
