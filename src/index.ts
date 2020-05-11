@@ -339,7 +339,7 @@ function flatCondition<ThisValue,Args>(operatOptions:OperatOptions<ThisValue,Arg
  * 条件选项类型
  */
 interface ExpressionOptions<ThisValue,Args> {
-  expr?:CondExpression<ThisValue,Args>,   //条件表达式
+  expr?:CondExpression<ThisValue extends unknown ? any:ThisValue,Args>,   //条件表达式
   this?:ThisValue,    //设置条件表达式中 函数条件 的 this 的值
 
   /**
@@ -410,7 +410,7 @@ function isOperatOptions<ThisValue,Args>(opts:any): opts is OperatOptions<ThisVa
 /**
  * 运算结果的类型
  */
-type OperatedResult = boolean | Promise<boolean>
+export type OperatedResult = boolean | Promise<boolean>
 
 
 /**
@@ -422,7 +422,10 @@ export interface conditionOperat {
 }
 
 
-
+/**
+ * 条件表达式 或 条件运算的选项
+ */
+export type ExprOrOpts<ThisValue,Args> = CondExpression<ThisValue,Args>|OperatOptions<ThisValue,Args>
 
 
 /**
@@ -449,7 +452,7 @@ export function conditionOperat<ThisValue,Args>(...operatOptions:OperatOptions<T
  *
  */
 export function conditionOperat<ThisValue,Args>(condExpress:CondExpression<ThisValue,Args>,...operatOptions:OperatOptions<ThisValue,Args>[]):OperatedResult;
-export function conditionOperat<ThisValue,Args>(exprOrOptions:CondExpression<ThisValue,Args>|OperatOptions<ThisValue,Args>,...operatOptions:OperatOptions<ThisValue,Args>[]):OperatedResult {
+export function conditionOperat<ThisValue,Args>(exprOrOptions:ExprOrOpts<ThisValue,Args>,...operatOptions:OperatOptions<ThisValue,Args>[]):OperatedResult {
 
   let finalOperOpts = Object.assign({},exprOrOptions,...operatOptions);
 
