@@ -414,11 +414,37 @@ export type OperatedResult = boolean | Promise<boolean>
 
 
 /**
+ * 快捷运算函数，带有默认选项的条件运算函数；
+ */
+interface OperatWith<ThisValue,Args> {
+  (...operatOptions:OperatOptions<ThisValue,Args>[]):OperatedResult;
+
+  /**
+   * 默认的 条件运算选项
+   */
+  operatOptions:OperatOptions<ThisValue,Args>;
+
+  /**
+   * 添加 条件运算选项 到默认的条件运算选项中；
+   * @param operatOpts
+   */
+  set:(...operatOpts:OperatOptions<ThisValue,Args>[])=>void;
+
+  /**
+   * 从默认的条件运算选项中删除指定的 key
+   * @param keys
+   */
+  delete:(...keys:ConditionMapKey[])=>boolean;
+}
+
+
+
+/**
  * conditionOperat 接口
  */
 export interface conditionOperat {
-  create<ThisValue,Args>(...operatOptions:OperatOptions<ThisValue,Args>[]): (...operatOptions:OperatOptions<ThisValue,Args>[])=>OperatedResult;
-  create<ThisValue,Args>(condExpress:CondExpression<ThisValue,Args>,...operatOptions:OperatOptions<ThisValue,Args>[]): (...operatOptions:OperatOptions<ThisValue,Args>[])=>OperatedResult;
+  create<ThisValue,Args>(...operatOptions:OperatOptions<ThisValue,Args>[]): OperatWith<ThisValue,Args>;
+  create<ThisValue,Args>(condExpress:CondExpression<ThisValue,Args>,...operatOptions:OperatOptions<ThisValue,Args>[]): OperatWith<ThisValue,Args>;
 }
 
 
@@ -800,7 +826,7 @@ function conditionOperatForFull<ThisValue,Args>(operatOptions:OperatOptions<This
   * create<ThisValue,Args>(...operatOptions:OperatOptions<ThisValue,Args>[]): (...operatOptions:OperatOptions<ThisValue,Args>[])=>OperatedResult
   * @param operatOptions : OperatOptions  conditionOperat 接收一系列关于条件的选项对象
   */
-export function create<ThisValue,Args>(...operatOptions:OperatOptions<ThisValue,Args>[]): (...operatOptions:OperatOptions<ThisValue,Args>[])=>OperatedResult;
+export function create<ThisValue,Args>(...operatOptions:OperatOptions<ThisValue,Args>[]): OperatWith<ThisValue,Args>;
 
 /**
  * 接口2
@@ -808,7 +834,7 @@ export function create<ThisValue,Args>(...operatOptions:OperatOptions<ThisValue,
  * @param condExpress : CondExpression   条件表达式
  * @param operatOptions : OperatOptions   一系列关于条件的选项对象
  */
-export function create<ThisValue,Args>(condExpress:CondExpression<ThisValue,Args>,...operatOptions:OperatOptions<ThisValue,Args>[]): (...operatOptions:OperatOptions<ThisValue,Args>[])=>OperatedResult;
+export function create<ThisValue,Args>(condExpress:CondExpression<ThisValue,Args>,...operatOptions:OperatOptions<ThisValue,Args>[]): OperatWith<ThisValue,Args>;
 export function create<ThisValue,Args>(exprOrOptions:CondExpression<ThisValue,Args>|OperatOptions<ThisValue,Args>,...operatOptions:OperatOptions<ThisValue,Args>[]){
 
   var finalOperOpts = Object.assign({},...operatOptions);
@@ -819,9 +845,24 @@ export function create<ThisValue,Args>(exprOrOptions:CondExpression<ThisValue,Ar
     finalOperOpts.expr = exprOrOptions;
   }
 
+
+
   function operatWith(...operOpts:OperatOptions<ThisValue,Args>[]):OperatedResult {
     return  conditionOperat(finalOperOpts,...operOpts);
   }
+
+  operatWith.operatOptions = finalOperOpts;
+
+  operatWith.set = function set(...operatOpts:OperatOptions<ThisValue,Args>[]):void {
+    Object.assign(finalOperOpts,...operatOpts);
+  };
+
+  operatWith.delete = function (...keys:ConditionMapKey[]):boolean {
+    return keys.every(function (key) {
+      return delete finalOperOpts[key];
+    });
+  };
+
 
   return operatWith;
 }
